@@ -1,0 +1,55 @@
+id: ios-xcode
+name: iOS / Xcode (SwiftUI or UIKit)
+
+detect:
+  any:
+    - "*.xcworkspace"
+    - "*.xcodeproj"
+    - "Package.swift"
+
+# Cheap, read-only commands run at generation time so verify.sh works on the FIRST run.
+# Never guess a scheme or simulator — probe for the real ones.
+probe:
+  workspace: "ls -d *.xcworkspace 2>/dev/null | head -1"
+  project: "ls -d *.xcodeproj 2>/dev/null | head -1"
+  schemes: "xcodebuild -list -json 2>/dev/null"
+  simulators: "xcrun simctl list devices available --json"
+  deployment_target: "grep -m1 IPHONEOS_DEPLOYMENT_TARGET *.xcodeproj/project.pbxproj"
+
+verify:
+  build: |
+    xcodebuild -workspace "{{workspace}}" -scheme "{{scheme}}" \
+      -destination "{{destination}}" build \
+      | tee /tmp/verify_build.log | tail -20
+    grep -q "BUILD SUCCEEDED" /tmp/verify_build.log || fail "build"
+  test: |
+    xcodebuild -workspace "{{workspace}}" -scheme "{{scheme}}" \
+      -destination "{{destination}}" {{test_plan_flag}} test \
+      | tee /tmp/verify_test.log | tail -40
+    grep -q "TEST SUCCEEDED" /tmp/verify_test.log || fail "test"
+
+# Injected into CONSTITUTION.md as platform invariants. These are real, hard-won lessons —
+# they cost a debugging session each the first time.
+pitfalls:
+  - "Pipe xcodebuild through `tee` + `grep 'BUILD SUCCEEDED'`. Piping to `tail` alone hides
+     failures, because `set -e` only sees tail's exit code, not xcodebuild's."
+  - "Check the real IPHONEOS_DEPLOYMENT_TARGET in project.pbxproj before using newer SwiftUI
+     APIs. @FocusState is iOS 15+, .onChange(of:perform:) is 14+ — both fail to build on 13."
+  - "Never open the .xcodeproj directly when a .xcworkspace exists."
+  - "Probe installed simulators; do not hardcode a device name. Default simulators disappear
+     between Xcode releases and a stale name fails the build for everyone."
+  - "A new test file compiles but is silently NOT RUN unless it has test-target membership.
+     Confirm the test count actually increased, not just that the suite passed."
+
+constitution_defaults:
+  architecture: |
+    - Define the layer chain here and make it mandatory (e.g. View → ViewModel → UseCase →
+      Repository → Service). Views never skip layers.
+  platform: |
+    - **Deployment target: {{deployment_target}}.** Check API availability before using any
+      newer SwiftUI/UIKit API.
+    - **Workspace only:** build via `{{workspace}}`, never the `.xcodeproj` directly.
+  code: |
+    - No `print()` — use OSLog if logging is genuinely needed.
+    - No force unwraps (`!`), force casts (`as!`), or `try!` in app code. Test mocks excepted.
+    - Never weaken ATS / `NSAllowsArbitraryLoads` in any Info.plist.
