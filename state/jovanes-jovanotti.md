@@ -8,14 +8,14 @@
 ## Now
 
 - **Objective:** Ship harness-kit v1 — generator, audit, and the repo governing itself.
-- **Active feature:** none — `hk-007` closed, `hk-006` parked 🟠.
-- **Status:** ✅ hk-007 done and rotated. 8/10 features complete.
+- **Active feature:** none — `hk-008` closed and rotated.
+- **Status:** ✅ 9/10 features complete. Only hk-009 (HTML report) left, plus parked hk-006.
 - **Last verify:** `SELFTEST: PASS` — repo audit clean after updating this file.
 
 ## Next step
 
-Start `hk-008` — add python, go, flutter and android profiles. Each needs real probe commands
-and pitfalls that cost someone a debugging session; do not invent generic advice.
+Start `hk-009` — HTML audit report. Render the existing audit JSON into a single self-contained
+file; no new checks, presentation only.
 
 ## Parked
 
@@ -34,9 +34,8 @@ and pitfalls that cost someone a debugging session; do not invent generic advice
 
 | File | Change | Why |
 |------|--------|-----|
-| `references/loop.md` | New — session loop reference | hk-007: agents need the reasoning, not just the steps |
-| `SKILL.md` | Loop mode now links loop.md | Was pointing at AGENTS.md as a stopgap |
-| `FEATURES.md` | hk-007 ✅ + rotated; hk-006 → 🟠 | Rubric verdict CONDITIONAL on hk-006 |
-| `archive/features/hk-007.md` | New — rotated detail | Rotation rule applied |
+| `profiles/{python,go,flutter,android-gradle}.mjs` | New — 4 stack profiles | hk-008 |
+| `scripts/create.mjs` | Failed probes default to "not detected" | Generation crashed without the toolchain installed |
+| `FEATURES.md` | hk-008 ✅ + rotated | Rotation rule applied |
 
 _Ground truth: run `git diff --stat` to confirm this table matches reality._

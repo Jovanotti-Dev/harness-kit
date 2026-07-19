@@ -8,7 +8,7 @@
 
 | Epic | Progress | Active / open |
 |------|:--------:|---------------|
-| harness-kit v1 | 8/10 ✅ | `hk-006` 🟠 conditional |
+| harness-kit v1 | 9/10 ✅ | `hk-009` 🟡 next |
 
 ---
 
@@ -26,7 +26,7 @@
 | hk-005 | Dogfood: harness-kit governs itself | ✅ | Jovanes Jovanotti | hk-004 | [archive](archive/features/hk-005.md) |
 | hk-006 | Rotation: move closed work to archive | 🟠 | Jovanes Jovanotti | hk-005 | ↓ below |
 | hk-007 | Loop-mode reference doc | ✅ | Jovanes Jovanotti | hk-005 | [archive](archive/features/hk-007.md) |
-| hk-008 | More profiles: python, go, flutter, android | 🟡 | — | hk-002 | — |
+| hk-008 | More profiles: python, go, flutter, android | ✅ | Jovanes Jovanotti | hk-002 | [archive](archive/features/hk-008.md) |
 | hk-009 | HTML audit report | 🟡 | — | hk-004 | — |
 | hk-010 | Fix flaky staleness check | ✅ | Jovanes Jovanotti | hk-004 | [archive](archive/features/hk-010.md) |
 
