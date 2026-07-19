@@ -58,10 +58,18 @@ const categories = runChecks({ files, target, newestCommit, stateCommitDates });
 // dependency cycle.
 const weigh = (c) => (c.pass ? 1 : c.severity === 'warn' ? 0.5 : 0);
 const all = categories.flatMap((c) => c.checks);
-const overall = Math.round((all.reduce((sum, c) => sum + weigh(c), 0) / all.length) * 100);
+const raw = Math.round((all.reduce((sum, c) => sum + weigh(c), 0) / all.length) * 100);
 
-const label =
-  overall >= 90 ? 'Excellent' : overall >= 75 ? 'Good' : overall >= 50 ? 'Needs attention' : 'Critical';
+// A failed critical check means the harness is unreachable or unverifiable — an
+// agent never loads it, or nothing can be proven done. Averaging that away
+// produced a 97/100 "Excellent" for a harness no agent would ever read, so a
+// critical failure caps the score outright.
+const criticalFailures = all.filter((c) => !c.pass && c.severity === 'critical');
+const overall = criticalFailures.length ? Math.min(raw, 49) : raw;
+
+const label = criticalFailures.length
+  ? 'Critical — harness not wired up'
+  : overall >= 90 ? 'Excellent' : overall >= 75 ? 'Good' : overall >= 50 ? 'Needs attention' : 'Critical';
 
 if (args.html) {
   const out = path.resolve(args.html === true ? path.join(target, 'harness-audit.html') : args.html);
@@ -91,12 +99,17 @@ if (args.json) {
     console.log(`  ${cat.name}  ${passed}/${cat.checks.length}  (${pct}%)`);
     for (const c of cat.checks) {
       if (c.pass) continue;
-      const mark = c.severity === 'warn' ? 'WARN' : 'FAIL';
+      const mark = c.severity === 'warn' ? 'WARN' : c.severity === 'critical' ? 'CRITICAL' : 'FAIL';
       console.log(`    ${mark}  ${c.label}`);
       console.log(`          ${c.detail}`);
       console.log(`          fix: ${c.fix}`);
     }
     console.log('');
+  }
+
+  if (criticalFailures.length) {
+    console.log(`  ${criticalFailures.length} CRITICAL failure(s) — the harness is not wired up.`);
+    console.log('  Score is capped until these are fixed; the other checks are moot.\n');
   }
 
   const failed = all.filter((c) => !c.pass);

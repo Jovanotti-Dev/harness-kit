@@ -34,10 +34,13 @@ function filesCategory({ files, target }) {
         claude !== null ? 'Present.' : 'Missing.',
         'Create CLAUDE.md containing only "@AGENTS.md".'),
       check(claude !== null && /@AGENTS\.md/.test(claude), 'CLAUDE.md points to AGENTS.md',
-        claude && /@AGENTS\.md/.test(claude) ? 'Points to AGENTS.md.' : 'No @AGENTS.md line.',
-        'Put "@AGENTS.md" at the top of CLAUDE.md so both agents share one source of truth.'),
+        claude && /@AGENTS\.md/.test(claude)
+          ? 'Points to AGENTS.md.'
+          : 'No @AGENTS.md line — an agent loading CLAUDE.md never reaches this harness.',
+        'Put "@AGENTS.md" at the top of CLAUDE.md so both agents share one source of truth.',
+        'critical'),
       check(agents !== null, 'AGENTS.md exists', agents !== null ? 'Present.' : 'Missing.',
-        'Run create mode to scaffold AGENTS.md.'),
+        'Run create mode to scaffold AGENTS.md.', 'critical'),
       check(constitution !== null, 'CONSTITUTION.md exists',
         constitution !== null ? 'Present.' : 'Missing (expected on standard/full).',
         'Create CONSTITUTION.md — it owns every rule and must never be archived.'),
@@ -48,7 +51,7 @@ function filesCategory({ files, target }) {
         stateFiles.length ? `${stateFiles.length} file(s) in state/.` : 'No state/<name>.md found.',
         'Create state/<git config user.name slug>.md for the current author.'),
       check(hasVerify, 'verify.sh exists', hasVerify ? 'Present.' : 'Missing.',
-        'Create verify.sh — no feature can be marked done without a runnable check.'),
+        'Create verify.sh — no feature can be marked done without a runnable check.', 'critical'),
       check(!hasVerify || executable, 'verify.sh is executable',
         !hasVerify ? 'No verify.sh.' : executable ? 'Executable bit set.' : 'Not executable.',
         'chmod +x verify.sh')

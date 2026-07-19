@@ -2,6 +2,7 @@
 import path from 'node:path';
 import { loadProfiles, detectStack } from './lib/detect.mjs';
 import { runProbes, gitUser, pickScheme, pickSimulator, parseScripts, slugifyUser } from './lib/probe.mjs';
+import { detectLegacy, formatLegacyReport } from './lib/legacy.mjs';
 import {
   render,
   assertNoPlaceholders,
@@ -36,7 +37,10 @@ if (args.help) {
                       [--stack ID] [--dry-run] [--force]
 
 Detects the stack, probes the environment, and writes the harness files.
-Existing files are skipped unless --force.`);
+Existing files are skipped unless --force.
+
+If the repo already has a harness, create refuses to write and prints a
+migration plan instead. Use --migrate to acknowledge and generate anyway.`);
   process.exit(0);
 }
 
@@ -44,6 +48,21 @@ const target = path.resolve(args.target || args._[0] || process.cwd());
 const tier = TIERS[args.profile] ? args.profile : 'standard';
 const dryRun = Boolean(args['dry-run']);
 const force = Boolean(args.force);
+
+// A repo that already has a harness must not be half-written into. Generating
+// alongside an existing CLAUDE.md leaves two competing instruction files, and
+// the agent follows the old one — a silent, total failure.
+const legacy = await detectLegacy(target);
+if (legacy.hasLegacy && !args.migrate && !dryRun) {
+  console.log(`harness-kit — refusing to write in ${target}\n`);
+  console.log(formatLegacyReport(legacy));
+  console.log('  This repo already has a harness. Writing new files alongside it would leave');
+  console.log('  two competing sets of instructions.\n');
+  console.log('  Migrate instead — see references/migrate.md. Nothing is deleted; content moves');
+  console.log('  to the file that now owns it, and the old files land in archive/legacy/.\n');
+  console.log('  To generate anyway once you have read that: --migrate');
+  process.exit(2);
+}
 
 const profiles = await loadProfiles();
 const profile = args.stack
@@ -168,6 +187,10 @@ if (wanted.includes('archive')) {
   }
 }
 
+if (legacy.hasLegacy) {
+  console.log(formatLegacyReport(legacy));
+}
+
 console.log(`harness-kit — ${dryRun ? 'dry run' : 'created'} in ${target}`);
 console.log(`  stack:   ${profile.name} (${profile.id})`);
 console.log(`  profile: ${tier}`);
@@ -178,6 +201,11 @@ if (profile.id === 'ios-xcode') {
 console.log('');
 for (const r of results) {
   console.log(`  ${r.status.toUpperCase().padEnd(11)} ${r.path}${r.reason ? ` (${r.reason})` : ''}`);
+}
+if (legacy.claudeConflict) {
+  console.log('\n  ! CLAUDE.md was left untouched and does NOT point to AGENTS.md.');
+  console.log('    Until you fix that, an agent loading CLAUDE.md follows the OLD harness');
+  console.log('    and never reads what was just generated. Audit will report CRITICAL.');
 }
 if (profile.id === 'generic') {
   console.log('\n  ! Stack not detected — verify.sh is TODO-marked and will fail until you fill it in.');
