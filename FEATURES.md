@@ -8,7 +8,7 @@
 
 | Epic | Progress | Active / open |
 |------|:--------:|---------------|
-| harness-kit v1 | 7/10 ✅ | `hk-006` 🔵 active |
+| harness-kit v1 | 8/10 ✅ | `hk-006` 🟠 conditional |
 
 ---
 
@@ -24,15 +24,15 @@
 | hk-003 | Generator: detect, probe, render | ✅ | Jovanes Jovanotti | hk-001, hk-002 | commit d9e943f; probed a real iOS repo correctly |
 | hk-004 | Audit with drift detection | ✅ | Jovanes Jovanotti | hk-003 | commit 46b17b4; caught 7/7 planted defects |
 | hk-005 | Dogfood: harness-kit governs itself | ✅ | Jovanes Jovanotti | hk-004 | [archive](archive/features/hk-005.md) |
-| hk-006 | Rotation: move closed work to archive | 🔵 | Jovanes Jovanotti | hk-005 | ↓ below |
-| hk-007 | Loop-mode reference doc | 🟡 | — | hk-005 | — |
+| hk-006 | Rotation: move closed work to archive | 🟠 | Jovanes Jovanotti | hk-005 | ↓ below |
+| hk-007 | Loop-mode reference doc | ✅ | Jovanes Jovanotti | hk-005 | [archive](archive/features/hk-007.md) |
 | hk-008 | More profiles: python, go, flutter, android | 🟡 | — | hk-002 | — |
 | hk-009 | HTML audit report | 🟡 | — | hk-004 | — |
 | hk-010 | Fix flaky staleness check | ✅ | Jovanes Jovanotti | hk-004 | [archive](archive/features/hk-010.md) |
 
-### hk-006 · Rotation: move closed work to archive  *(active)*
+### hk-006 · Rotation: move closed work to archive  *(parked)*
 
-- **Status:** 🔵 in progress · **Depends on:** hk-005
+- **Status:** 🟠 needs verification · **Depends on:** hk-005
 - **Done when:** the rotation procedure is documented, the audit catches skipped rotation,
   and this repo's own closed features are rotated.
 
@@ -48,7 +48,9 @@ link; a script would be another moving part to maintain. The audit enforces that
 which is the part that actually needs to be mechanical. Automate only if agents skip it in
 practice.
 
-**Blockers** — none.
+**Blockers** — none. Rubric verdict **CONDITIONAL**: every `must` passes, one `should`
+(does the rule hold without a script?) cannot be judged in a single session. Explicitly
+deferred, not skipped.
 
 ---
 
