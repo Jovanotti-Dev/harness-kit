@@ -8,7 +8,7 @@
 
 | Epic | Progress | Active / open |
 |------|:--------:|---------------|
-| harness-kit v1 | 5/9 ✅ | `hk-006` 🟡 next |
+| harness-kit v1 | 7/10 ✅ | `hk-006` 🔵 active |
 
 ---
 
@@ -23,27 +23,30 @@
 | hk-002 | Stack profiles as data | ✅ | Jovanes Jovanotti | — | 5 profiles, commits 91638f8 + e27c177 |
 | hk-003 | Generator: detect, probe, render | ✅ | Jovanes Jovanotti | hk-001, hk-002 | commit d9e943f; probed a real iOS repo correctly |
 | hk-004 | Audit with drift detection | ✅ | Jovanes Jovanotti | hk-003 | commit 46b17b4; caught 7/7 planted defects |
-| hk-005 | Dogfood: harness-kit governs itself | ✅ | Jovanes Jovanotti | hk-004 | ↓ below |
-| hk-006 | Rotation: move closed work to archive | 🟡 | — | hk-005 | — |
+| hk-005 | Dogfood: harness-kit governs itself | ✅ | Jovanes Jovanotti | hk-004 | [archive](archive/features/hk-005.md) |
+| hk-006 | Rotation: move closed work to archive | 🔵 | Jovanes Jovanotti | hk-005 | ↓ below |
 | hk-007 | Loop-mode reference doc | 🟡 | — | hk-005 | — |
 | hk-008 | More profiles: python, go, flutter, android | 🟡 | — | hk-002 | — |
 | hk-009 | HTML audit report | 🟡 | — | hk-004 | — |
+| hk-010 | Fix flaky staleness check | ✅ | Jovanes Jovanotti | hk-004 | [archive](archive/features/hk-010.md) |
 
-### hk-005 · Dogfood: harness-kit governs itself  *(done)*
+### hk-006 · Rotation: move closed work to archive  *(active)*
 
-- **Status:** ✅ done · **Depends on:** hk-004
-- **Done when:** the repo carries its own generated harness, `npm test` passes end to end,
-  and `npm run audit` scores the repo without failures.
+- **Status:** 🔵 in progress · **Depends on:** hk-005
+- **Done when:** the rotation procedure is documented, the audit catches skipped rotation,
+  and this repo's own closed features are rotated.
 
 | ✓ | Check | By | Proof |
 |:-:|-------|----|-------|
-| ✅ | node-tool profile added | Jovanes Jovanotti | Repo detected as `node-tool`, not `generic` |
-| ✅ | Self test passes | Jovanes Jovanotti | `npm test` → SELFTEST: PASS, generated harness scores 100 |
-| ✅ | Harness generated into the repo | Jovanes Jovanotti | This file, AGENTS.md, CONSTITUTION.md, state/ |
-| ✅ | Audit of this repo is clean | Jovanes Jovanotti | `npm run audit` → 100/100, 30/30 checks pass |
+| ✅ | Procedure documented | Jovanes Jovanotti | `references/rotation.md` — feature, session and epic rotation |
+| ✅ | Audit catches skipped rotation | Jovanes Jovanotti | New check flagged hk-005 and hk-010 the moment it was added |
+| ✅ | This repo's closed features rotated | Jovanes Jovanotti | `archive/features/hk-005.md`, `hk-010.md`; FEATURES.md shrank by 18 lines |
+| 🟡 | Rule proves reliable without a script | — | Deferred — revisit after several real sessions |
 
-**Decisions** — the repo's own `verify.sh` runs `npm test`, which generates a harness and
-audits it. The tool's verification is therefore the tool doing its actual job, not a proxy.
+**Decisions** — rotation stays a written rule, not `rotate.mjs`. It is a cut-and-paste plus a
+link; a script would be another moving part to maintain. The audit enforces that it happened,
+which is the part that actually needs to be mechanical. Automate only if agents skip it in
+practice.
 
 **Blockers** — none.
 

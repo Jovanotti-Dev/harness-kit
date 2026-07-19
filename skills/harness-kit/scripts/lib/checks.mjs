@@ -141,6 +141,11 @@ function featuresCategory({ files, target }) {
 
   const epicsMissingMeta = model.epics.filter((e) => !e.startedBy || !e.started);
 
+  // A ✅ feature whose detail section is still inline was never rotated. Left
+  // unchecked this is exactly how FEATURES.md grows without bound.
+  const detailIds = new Set(model.details.map((d) => d.id));
+  const unrotated = rows.filter((r) => r.status === '✅' && detailIds.has(r.id));
+
   return {
     id: 'features',
     name: 'FEATURES.md & dependency graph',
@@ -175,6 +180,11 @@ function featuresCategory({ files, target }) {
       check(brokenLinks.length === 0, 'Evidence links resolve',
         brokenLinks.length === 0 ? 'All archive links exist.' : `Missing: ${brokenLinks.join(', ')}.`,
         'Create the archive file or fix the path — a dead evidence link is an unprovable ✅.'),
+      check(unrotated.length === 0, 'Closed features are rotated to archive/',
+        unrotated.length === 0
+          ? 'No ✅ feature still carries an inline detail section.'
+          : `Not rotated: ${unrotated.map((r) => r.id).join(', ')}.`,
+        'Move the detail to archive/features/<id>.md and replace the Evidence cell with a link. See references/rotation.md.'),
       check(epicsMissingMeta.length === 0, 'Epics record Started / Started by',
         epicsMissingMeta.length === 0
           ? 'All epics carry start metadata.'
@@ -187,7 +197,7 @@ function featuresCategory({ files, target }) {
 }
 
 // ---------- Drift & quality ----------
-function driftCategory({ files, target, featuresModel, newestCommit }) {
+function driftCategory({ files, target, featuresModel, newestCommit, stateCommitDates }) {
   const { agents, constitution, features, stateFiles } = files;
   const all = [agents, constitution, features, ...stateFiles.map((s) => s.content)]
     .filter(Boolean)
@@ -203,13 +213,13 @@ function driftCategory({ files, target, featuresModel, newestCommit }) {
     })
     .filter(Boolean);
 
+  // Compare each state file's last COMMIT date against the newest commit.
+  // Filesystem mtime is useless here: `git checkout` rewrites working-tree
+  // files, so switching branches would silently "fix" a stale state file.
   const stale = newestCommit
     ? stateFiles.filter((s) => {
-        try {
-          return statSync(path.join(target, s.rel)).mtime < newestCommit;
-        } catch {
-          return false;
-        }
+        const committed = stateCommitDates?.[s.rel];
+        return committed ? committed < newestCommit : false;
       })
     : [];
 

@@ -42,7 +42,15 @@ const files = {
 const commitIso = runProbe('git log -1 --format=%cI', target, 5000);
 const newestCommit = commitIso ? new Date(commitIso) : null;
 
-const categories = runChecks({ files, target, newestCommit });
+// Last commit date per state file. Filesystem mtime cannot be trusted for this:
+// git checkout rewrites working-tree files and resets it.
+const stateCommitDates = {};
+for (const s of files.stateFiles) {
+  const iso = runProbe(`git log -1 --format=%cI -- "${s.rel}"`, target, 5000);
+  if (iso) stateCommitDates[s.rel] = new Date(iso);
+}
+
+const categories = runChecks({ files, target, newestCommit, stateCommitDates });
 
 // Warnings count for half. A missing "Started by" shouldn't weigh the same as a
 // dependency cycle.
