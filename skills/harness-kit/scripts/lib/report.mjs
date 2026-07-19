@@ -45,7 +45,13 @@ function checkSections(categories) {
       const rows = cat.checks
         .map((c) => {
           const cls = c.pass ? 'p' : c.severity === 'warn' ? 'w' : 'f';
-          const word = c.pass ? 'PASS' : c.severity === 'warn' ? 'WARN' : 'FAIL';
+          const word = c.pass
+            ? 'PASS'
+            : c.severity === 'warn'
+              ? 'WARN'
+              : c.severity === 'critical'
+                ? 'CRITICAL'
+                : 'FAIL';
           const fix = c.pass ? '' : `<div class="fix"><b>fix:</b> ${esc(c.fix)}</div>`;
           return `      <tr>
         <td class="s ${cls}">${word}</td>
