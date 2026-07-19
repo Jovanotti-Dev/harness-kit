@@ -23,8 +23,8 @@ from `git config user.name`, never from the agent.
 | Mode | When | Reference |
 |---|---|---|
 | **create** | Repo has no harness, or is missing files | [references/create.md](references/create.md) |
-| **loop** | Any working session in a harnessed repo | [references/loop.md](references/loop.md) |
-| **audit** | Explicit request only — never run on your own initiative | [references/audit.md](references/audit.md) |
+| **loop** | Any working session in a harnessed repo | follow "Session startup" and "Session handoff" in the project's `AGENTS.md` |
+| **audit** | Explicit request only — never run on your own initiative | not yet implemented |
 
 Pick the mode from intent, then load only that reference.
 

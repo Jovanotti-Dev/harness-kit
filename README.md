@@ -49,7 +49,9 @@ Team-wide visibility lives in `FEATURES.md`, which merges normally.
 
 ## Status
 
-Early. Design validated against a real 9-feature iOS project; generator in progress.
+Phase 1 done — the generator works: stack detection, environment probing, and template
+rendering, with profiles for iOS/Xcode, React web, Node backend, and a generic fallback.
+Next: the audit script.
 See [docs/plan.md](docs/plan.md).
 
 ## License
