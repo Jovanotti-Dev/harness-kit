@@ -1,0 +1,16 @@
+{
+  "name": "harness-kit",
+  "version": "0.2.0",
+  "description": "Generate and audit reliability harnesses for AI coding agents — any stack, any agent.",
+  "license": "MIT",
+  "type": "module",
+  "private": false,
+  "scripts": {
+    "test": "node skills/harness-kit/scripts/selftest.mjs",
+    "create": "node skills/harness-kit/scripts/create.mjs",
+    "audit": "node skills/harness-kit/scripts/audit.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
