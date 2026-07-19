@@ -23,6 +23,7 @@ from `git config user.name`, never from the agent.
 | Mode | When | Reference |
 |---|---|---|
 | **create** | Repo has no harness, or is missing files | [references/create.md](references/create.md) |
+| **migrate** | Repo already has a harness (any flavour) | [references/migrate.md](references/migrate.md) |
 | **loop** | Any working session in a harnessed repo | [references/loop.md](references/loop.md) |
 | **audit** | Explicit request only — never run on your own initiative | [references/audit.md](references/audit.md) |
 
@@ -42,6 +43,9 @@ Default to `standard`. Offer `lite` when the repo is small and has no test tooli
 
 - **Never overwrite blindly.** Existing `AGENTS.md` / `CONSTITUTION.md` / `FEATURES.md` are
   modified in place, preserving user content. Report what changed.
+- **Never generate alongside an existing harness.** `create` refuses and prints a migration
+  plan. Two competing instruction files means the agent follows the old one and never sees the
+  new harness — a silent, total failure. Migrate instead; nothing gets deleted.
 - **Never auto-commit.** Update files, report, let the user decide.
 - **Never invent verification.** Only list checks the project actually has — detect them from
   manifests and probes. A check that can't run is worse than no check.

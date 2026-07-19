@@ -8,15 +8,15 @@
 ## Now
 
 - **Objective:** Ship harness-kit v1 — generator, audit, and the repo governing itself.
-- **Active feature:** none — `hk-009` closed. All v1 features done.
-- **Status:** ✅ 10/10 features complete. Only parked `hk-006` remains, by design.
+- **Active feature:** none — `hk-011` closed.
+- **Status:** ✅ 11/11 done. Migration path added after trialling on a real repo.
 - **Last verify:** `SELFTEST: PASS` — repo audit 100/100 at v0.3.0.
 
 ## Next step
 
-v0.3.0 is tagged. Next session: run `harness-kit create` on a real project other than this
-one. That is the only way to answer `hk-006`'s open question — does the rotation rule hold
-without a script? — and it is where the next round of bugs will come from.
+Migrate a real project for real. The trial only proved `create` now refuses correctly; the
+migration procedure itself (moving progress.md content into CONSTITUTION/JOURNAL/archive) has
+not been executed end to end on a live repo. That also answers `hk-006`'s open question.
 
 ## Parked
 
@@ -35,6 +35,9 @@ without a script? — and it is where the next round of bugs will come from.
 
 | File | Change | Why |
 |------|--------|-----|
-| `state/jovanes-jovanotti.md` | Session close for v0.3.0 | Release tagged; next step recorded |
+| `profiles/ios-xcode.mjs` | Nested .xcodeproj probe | Deployment target read "unknown" on a real repo |
+| `scripts/lib/legacy.mjs` | New — existing-harness detection | hk-011 |
+| `scripts/lib/checks.mjs`, `audit.mjs` | Critical severity caps score | 97/100 for an unreachable harness |
+| `references/migrate.md` | New — migration procedure | Never delete; move content |
 
 _Ground truth: run `git diff --stat` to confirm this table matches reality._

@@ -8,7 +8,7 @@
 
 | Epic | Progress | Active / open |
 |------|:--------:|---------------|
-| harness-kit v1 | 10/10 ✅ | `hk-006` 🟠 parked |
+| harness-kit v1 | 11/11 ✅ | `hk-006` 🟠 parked |
 
 ---
 
@@ -29,6 +29,7 @@
 | hk-008 | More profiles: python, go, flutter, android | ✅ | Jovanes Jovanotti | hk-002 | [archive](archive/features/hk-008.md) |
 | hk-009 | HTML audit report | ✅ | Jovanes Jovanotti | hk-004 | [archive](archive/features/hk-009.md) |
 | hk-010 | Fix flaky staleness check | ✅ | Jovanes Jovanotti | hk-004 | [archive](archive/features/hk-010.md) |
+| hk-011 | Handle repos that already have a harness | ✅ | Jovanes Jovanotti | hk-003, hk-004 | [archive](archive/features/hk-011.md) |
 
 ### hk-006 · Rotation: move closed work to archive  *(parked)*
 
