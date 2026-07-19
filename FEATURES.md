@@ -8,7 +8,7 @@
 
 | Epic | Progress | Active / open |
 |------|:--------:|---------------|
-| harness-kit v1 | 5/9 ✅ | `hk-006` 🟡 next |
+| harness-kit v1 | 6/10 ✅ | `hk-006` 🔵 active |
 
 ---
 
@@ -28,6 +28,7 @@
 | hk-007 | Loop-mode reference doc | 🟡 | — | hk-005 | — |
 | hk-008 | More profiles: python, go, flutter, android | 🟡 | — | hk-002 | — |
 | hk-009 | HTML audit report | 🟡 | — | hk-004 | — |
+| hk-010 | Fix flaky staleness check | ✅ | Jovanes Jovanotti | hk-004 | ↓ below |
 
 ### hk-005 · Dogfood: harness-kit governs itself  *(done)*
 
@@ -46,6 +47,23 @@
 audits it. The tool's verification is therefore the tool doing its actual job, not a proxy.
 
 **Blockers** — none.
+
+### hk-010 · Fix flaky staleness check  *(done)*
+
+- **Status:** ✅ done · **Depends on:** hk-004
+- **Found by:** dogfooding in hk-005 — the repo scored 98, then 100 after a `git checkout`,
+  with no content change.
+- **Done when:** the staleness check cannot be masked by switching branches.
+
+| ✓ | Check | By | Proof |
+|:-:|-------|----|-------|
+| ✅ | Root cause identified | Jovanes Jovanotti | Check used filesystem mtime; `git checkout` rewrites files and resets it |
+| ✅ | Uses commit dates instead | Jovanes Jovanotti | `git log -1 --format=%cI -- <path>` per state file, computed in audit.mjs |
+| ✅ | Correctly reports stale now | Jovanes Jovanotti | State file committed 22:33:46, HEAD 22:34:10 → flagged, score 98 |
+| ✅ | Selftest still passes | Jovanes Jovanotti | `npm test` → SELFTEST: PASS |
+
+**Decisions** — mtime is unusable for anything git-related in a working tree. Any future
+freshness check must read commit metadata, never the filesystem.
 
 ---
 

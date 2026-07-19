@@ -187,7 +187,7 @@ function featuresCategory({ files, target }) {
 }
 
 // ---------- Drift & quality ----------
-function driftCategory({ files, target, featuresModel, newestCommit }) {
+function driftCategory({ files, target, featuresModel, newestCommit, stateCommitDates }) {
   const { agents, constitution, features, stateFiles } = files;
   const all = [agents, constitution, features, ...stateFiles.map((s) => s.content)]
     .filter(Boolean)
@@ -203,13 +203,13 @@ function driftCategory({ files, target, featuresModel, newestCommit }) {
     })
     .filter(Boolean);
 
+  // Compare each state file's last COMMIT date against the newest commit.
+  // Filesystem mtime is useless here: `git checkout` rewrites working-tree
+  // files, so switching branches would silently "fix" a stale state file.
   const stale = newestCommit
     ? stateFiles.filter((s) => {
-        try {
-          return statSync(path.join(target, s.rel)).mtime < newestCommit;
-        } catch {
-          return false;
-        }
+        const committed = stateCommitDates?.[s.rel];
+        return committed ? committed < newestCommit : false;
       })
     : [];
 
