@@ -49,9 +49,10 @@ Team-wide visibility lives in `FEATURES.md`, which merges normally.
 
 ## Status
 
-Phase 1 done — the generator works: stack detection, environment probing, and template
-rendering, with profiles for iOS/Xcode, React web, Node backend, and a generic fallback.
-Next: the audit script.
+Phases 1–2 done. `create` detects the stack, probes the environment and writes the harness;
+`audit` scores it across four categories and catches drift — dependency cycles, done features
+with no evidence, dead evidence links, duplicated rules, oversized state files.
+Profiles: iOS/Xcode, React web, Node backend, generic fallback.
 See [docs/plan.md](docs/plan.md).
 
 ## License
