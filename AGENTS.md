@@ -1,0 +1,56 @@
+# AGENTS.md
+
+harness-kit — a skill that generates and audits reliability harnesses for AI coding agents.
+Router for agent work. Facts live in the linked docs; this file is the map, not the manual.
+
+## Session startup
+
+1. Load the `harness-kit` skill first, every session.
+2. Read **your** state file — resolve it with:
+   `echo "state/$(git config user.name | tr "[:upper:] " "[:lower:]-").md"`
+   It's the only state file you read in full: active feature, last verify
+   result, blockers, next step. Never write to anyone else's state file.
+3. Read `CONSTITUTION.md` — the permanent rules and past decisions. Always in context.
+4. Run `./verify.sh test` to confirm a clean baseline before editing.
+5. Pick the **one** ready feature from `FEATURES.md` (all its `Depends on` are ✅).
+   Set its status to 🔵 and start.
+
+## Project overview
+
+- **Stack:** Node v24.15.0, npm
+- **Structure:** `skills/harness-kit/` holds SKILL.md, templates/, profiles/, scripts/ and
+  references/. Scripts are thin CLIs over `scripts/lib/`.
+- **Docs:** `CONSTITUTION.md` (rules), `FEATURES.md` (scope), `JOURNAL.md` (lessons).
+
+## Verification
+
+Run before claiming any work done. All checks must pass.
+
+```bash
+./verify.sh test
+```
+
+`verify.sh` prints a final `HARNESS_VERIFY: PASS` / `FAIL` line — that line is your evidence.
+Only checks this project actually has are listed. Do not invent lint/test/e2e steps.
+
+## Definition of done
+
+A feature is `✅` only when: its `Done when` criteria are met, `verify.sh` passes, evidence is
+recorded in its `FEATURES.md` sub-table, and your state file is updated with the next step.
+
+## Session handoff
+
+- Keep your state file current in real time — flip status the moment it changes.
+- After every edit, append to its `Changes` table (file · what · why).
+- Before ending: run verify, record the result, leave your state file resumable on its own.
+- When a feature closes, rotate its detail to `archive/` and leave a link in `FEATURES.md`.
+
+---
+
+## Rules
+
+**All binding rules live in `CONSTITUTION.md`** — architecture, platform constraints, code
+prohibitions, process, and git. It is binding, not advisory: read it at startup (step 3),
+and if anything in this file appears to conflict with it, **`CONSTITUTION.md` wins.**
+
+Rules are deliberately not repeated here. One home, no drift.

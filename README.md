@@ -49,10 +49,14 @@ Team-wide visibility lives in `FEATURES.md`, which merges normally.
 
 ## Status
 
-Phases 1–2 done. `create` detects the stack, probes the environment and writes the harness;
+Phases 1–3 done. `create` detects the stack, probes the environment and writes the harness;
 `audit` scores it across four categories and catches drift — dependency cycles, done features
 with no evidence, dead evidence links, duplicated rules, oversized state files.
-Profiles: iOS/Xcode, React web, Node backend, generic fallback.
+Profiles: iOS/Xcode, React web, Node backend, Node tool, generic fallback.
+
+**harness-kit governs itself.** This repo carries its own generated harness, and `npm test`
+generates a harness into a throwaway repo and audits it — the project's verification is the
+tool doing its actual job. Remaining v1 work is tracked in [FEATURES.md](FEATURES.md).
 See [docs/plan.md](docs/plan.md).
 
 ## License
