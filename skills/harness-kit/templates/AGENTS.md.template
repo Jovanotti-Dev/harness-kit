@@ -42,7 +42,9 @@ recorded in its `FEATURES.md` sub-table, and your state file is updated with the
 - Keep your state file current in real time — flip status the moment it changes.
 - After every edit, append to its `Changes` table (file · what · why).
 - Before ending: run verify, record the result, leave your state file resumable on its own.
-- When a feature closes, rotate its detail to `archive/` and leave a link in `FEATURES.md`.
+- When a feature closes, rotate its detail to `archive/features/<id>.md` and replace its
+  Evidence cell with a link. Same for sessions and completed epics. Write the archive file
+  *first*, then remove the detail — the other order loses the evidence if interrupted.
 
 ---
 

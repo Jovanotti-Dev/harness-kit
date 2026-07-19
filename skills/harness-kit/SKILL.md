@@ -71,4 +71,6 @@ Hot files are read every session and must stay small — `state/<name>.md` cappe
 
 - Templates: [templates/](templates/) — one per generated file.
 - Stack profiles: [profiles/](profiles/) — detection, probe commands, verify commands, and
-  known pitfalls per stack. Adding a stack means adding one YAML file, not editing code.
+  known pitfalls per stack. Adding a stack means adding one file, not editing code.
+- Rotation procedure: [references/rotation.md](references/rotation.md) — how closed features,
+  sessions and epics move into `archive/`. This is what keeps the hot files flat.

@@ -9,14 +9,14 @@
 
 - **Objective:** Ship harness-kit v1 — generator, audit, and the repo governing itself.
 - **Active feature:** `hk-006` — rotation: move closed work to archive.
-- **Status:** 🔵 in progress — hk-010 closed first (flaky check found while dogfooding).
-- **Last verify:** `SELFTEST: PASS` — repo audit 98 (staleness check now correctly firing).
+- **Status:** 🔵 hk-006 nearly done — rule documented, audit check added, repo rotated.
+- **Last verify:** `SELFTEST: PASS` — repo audit clean after rotating hk-005 and hk-010.
 
 ## Next step
 
-Implement `hk-006` rotation rule-first: document the procedure in the AGENTS.md template and
-add an audit check that catches un-rotated closed work. Write `rotate.mjs` only if the rule
-proves unreliable in practice.
+Start `hk-007` (loop-mode reference doc) — the last documentation gap before v1. `hk-006`'s
+final check (does the rule hold without a script?) stays open deliberately until several real
+sessions have run.
 
 ## Parked
 
