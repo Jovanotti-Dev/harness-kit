@@ -16,8 +16,11 @@ export default {
     // Slow on first run: Xcode resolves Swift packages before it will list schemes.
     schemesJson: { cmd: 'xcodebuild -list -json 2>/dev/null', timeout: 120_000 },
     simulatorsJson: "xcrun simctl list devices available --json 2>/dev/null",
+    // The .xcodeproj is often nested (EDTSApp/EDTSApp.xcodeproj), so a root-level
+    // glob silently finds nothing and loses the single most important platform
+    // fact — the deployment target that decides which SwiftUI APIs compile.
     deploymentTarget:
-      "grep -m1 -o 'IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*' *.xcodeproj/project.pbxproj 2>/dev/null | head -1"
+      "find . -maxdepth 4 -name project.pbxproj -not -path './Pods/*' 2>/dev/null | head -1 | xargs grep -m1 -o 'IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*' 2>/dev/null | head -1"
   },
 
   verify: {
