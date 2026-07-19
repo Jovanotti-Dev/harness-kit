@@ -8,7 +8,7 @@
 
 | Epic | Progress | Active / open |
 |------|:--------:|---------------|
-| harness-kit v1 | 12/12 ✅ | — all closed |
+| harness-kit v1 | 14/14 ✅ | — all closed |
 
 ---
 
@@ -30,6 +30,8 @@
 | hk-009 | HTML audit report | ✅ | Jovanes Jovanotti | hk-004 | [archive](archive/features/hk-009.md) |
 | hk-010 | Fix flaky staleness check | ✅ | Jovanes Jovanotti | hk-004 | [archive](archive/features/hk-010.md) |
 | hk-011 | Handle repos that already have a harness | ✅ | Jovanes Jovanotti | hk-003, hk-004 | [archive](archive/features/hk-011.md) |
+| hk-012 | Regression tests, one per known bug | ✅ | Jovanes Jovanotti | hk-011 | [archive](archive/features/hk-012.md) |
+| hk-013 | CI on every push | ✅ | Jovanes Jovanotti | hk-012 | [archive](archive/features/hk-013.md) |
 ---
 
 ## Shipped

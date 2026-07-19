@@ -48,7 +48,7 @@ export function parseTables(body) {
     const t = line.trim();
     if (t.startsWith('|') && t.endsWith('|')) {
       const cells = t.slice(1, -1).split('|').map((c) => c.trim());
-      if (/^:?-{2,}:?$/.test(cells[0])) continue; // separator row
+      if (/^:?-+:?$/.test(cells[0])) continue; // separator row (:-: is valid too)
       if (!current) {
         current = { header: cells, rows: [] };
         tables.push(current);
