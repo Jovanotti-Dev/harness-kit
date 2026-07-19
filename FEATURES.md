@@ -8,7 +8,7 @@
 
 | Epic | Progress | Active / open |
 |------|:--------:|---------------|
-| harness-kit v1 | 9/10 ✅ | `hk-009` 🟡 next |
+| harness-kit v1 | 10/10 ✅ | `hk-006` 🟠 parked |
 
 ---
 
@@ -27,7 +27,7 @@
 | hk-006 | Rotation: move closed work to archive | 🟠 | Jovanes Jovanotti | hk-005 | ↓ below |
 | hk-007 | Loop-mode reference doc | ✅ | Jovanes Jovanotti | hk-005 | [archive](archive/features/hk-007.md) |
 | hk-008 | More profiles: python, go, flutter, android | ✅ | Jovanes Jovanotti | hk-002 | [archive](archive/features/hk-008.md) |
-| hk-009 | HTML audit report | 🟡 | — | hk-004 | — |
+| hk-009 | HTML audit report | ✅ | Jovanes Jovanotti | hk-004 | [archive](archive/features/hk-009.md) |
 | hk-010 | Fix flaky staleness check | ✅ | Jovanes Jovanotti | hk-004 | [archive](archive/features/hk-010.md) |
 
 ### hk-006 · Rotation: move closed work to archive  *(parked)*

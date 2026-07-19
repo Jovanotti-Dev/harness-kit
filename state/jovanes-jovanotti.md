@@ -8,14 +8,15 @@
 ## Now
 
 - **Objective:** Ship harness-kit v1 — generator, audit, and the repo governing itself.
-- **Active feature:** none — `hk-008` closed and rotated.
-- **Status:** ✅ 9/10 features complete. Only hk-009 (HTML report) left, plus parked hk-006.
+- **Active feature:** none — `hk-009` closed. All v1 features done.
+- **Status:** ✅ 10/10 features complete. Only parked `hk-006` remains, by design.
 - **Last verify:** `SELFTEST: PASS` — repo audit clean after updating this file.
 
 ## Next step
 
-Start `hk-009` — HTML audit report. Render the existing audit JSON into a single self-contained
-file; no new checks, presentation only.
+v1 scope is complete. Next session: either tag v0.3.0 and announce, or run harness-kit on a
+real project other than this one — that is the only way to judge `hk-006`'s open question
+(does the rotation rule hold without a script?).
 
 ## Parked
 
@@ -34,8 +35,9 @@ file; no new checks, presentation only.
 
 | File | Change | Why |
 |------|--------|-----|
-| `profiles/{python,go,flutter,android-gradle}.mjs` | New — 4 stack profiles | hk-008 |
-| `scripts/create.mjs` | Failed probes default to "not detected" | Generation crashed without the toolchain installed |
-| `FEATURES.md` | hk-008 ✅ + rotated | Rotation rule applied |
+| `templates/audit-report.html` | New — report template | hk-009 |
+| `scripts/lib/report.mjs` | New — HTML renderer with escaping | hk-009 |
+| `scripts/audit.mjs` | Added --html flag | hk-009 |
+| `FEATURES.md` | hk-009 ✅ + rotated | Rotation rule applied |
 
 _Ground truth: run `git diff --stat` to confirm this table matches reality._

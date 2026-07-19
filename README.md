@@ -22,7 +22,7 @@ npx skills add <username>/harness-kit
 |---|---|---|
 | **create** | New or existing repo with no harness | Detects the stack, probes the environment, writes the harness files |
 | **loop** | Any working session in a harnessed repo | Session start → work → verify → handoff |
-| **audit** | On request only | Scores harness health, reports drift |
+| **audit** | On request only | Scores harness health, reports drift, optional `--html` report |
 
 ## What it generates
 
@@ -49,10 +49,10 @@ Team-wide visibility lives in `FEATURES.md`, which merges normally.
 
 ## Status
 
-Phases 1–3 done. `create` detects the stack, probes the environment and writes the harness;
-`audit` scores it across four categories and catches drift — dependency cycles, done features
-with no evidence, dead evidence links, duplicated rules, oversized state files.
-Profiles: iOS/Xcode, React web, Node backend, Node tool, generic fallback.
+v1 scope complete. `create` detects the stack, probes the environment and writes the harness;
+`audit` scores it across four categories, catches drift, and can render a self-contained HTML
+report. Nine stack profiles: iOS/Xcode, React web, Node backend, Node tool, Python, Go,
+Flutter, Android/Gradle, and a generic fallback.
 
 **harness-kit governs itself.** This repo carries its own generated harness, and `npm test`
 generates a harness into a throwaway repo and audits it — the project's verification is the
