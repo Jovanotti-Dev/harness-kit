@@ -3,6 +3,8 @@ import path from 'node:path';
 import { readIfExists, listStateFiles } from './lib/parse.mjs';
 import { runChecks } from './lib/checks.mjs';
 import { runProbe } from './lib/probe.mjs';
+import { renderHtmlReport } from './lib/report.mjs';
+import { writeFile } from 'node:fs/promises';
 
 function parseArgs(argv) {
   const args = { _: [] };
@@ -20,7 +22,7 @@ function parseArgs(argv) {
 const args = parseArgs(process.argv.slice(2));
 
 if (args.help) {
-  console.log(`Usage: node audit.mjs [--target DIR] [--json] [--min-score N]
+  console.log(`Usage: node audit.mjs [--target DIR] [--json] [--html FILE] [--min-score N]
 
 Static checks only — no project commands are run.
 Exit code is 1 when the score is below --min-score (default 70).`);
@@ -60,6 +62,22 @@ const overall = Math.round((all.reduce((sum, c) => sum + weigh(c), 0) / all.leng
 
 const label =
   overall >= 90 ? 'Excellent' : overall >= 75 ? 'Good' : overall >= 50 ? 'Needs attention' : 'Critical';
+
+if (args.html) {
+  const out = path.resolve(args.html === true ? path.join(target, 'harness-audit.html') : args.html);
+  await writeFile(
+    out,
+    await renderHtmlReport({
+      project: path.basename(target),
+      overall,
+      label,
+      categories,
+      generated: new Date().toISOString().slice(0, 16).replace('T', ' ')
+    }),
+    'utf8'
+  );
+  console.log(`HTML report written to ${out}`);
+}
 
 if (args.json) {
   console.log(JSON.stringify({ target, overall, label, categories }, null, 2));
