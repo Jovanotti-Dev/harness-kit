@@ -8,20 +8,19 @@
 ## Now
 
 - **Objective:** Ship harness-kit v1 — generator, audit, and the repo governing itself.
-- **Active feature:** none — `hk-011` closed.
-- **Status:** ✅ 11/11 done. Migration path added after trialling on a real repo.
+- **Active feature:** none — every feature closed.
+- **Status:** ✅ 12/12 done, nothing parked. hk-006 closed by a real migration.
 - **Last verify:** `SELFTEST: PASS` — repo audit 100/100 at v0.3.0.
 
 ## Next step
 
-Migrate a real project for real. The trial only proved `create` now refuses correctly; the
-migration procedure itself (moving progress.md content into CONSTITUTION/JOURNAL/archive) has
-not been executed end to end on a live repo. That also answers `hk-006`'s open question.
+Tag v0.4.0 (migrate mode + critical severity + hk-006 closed). After that the useful work is
+other people's repos, not this one — a second migrator would be much stronger evidence for the
+rotation rule than one careful pass by its author.
 
 ## Parked
 
-- `hk-006` — 🟠 rotation rule works, but "does it hold without a script?" needs several real
-  sessions before it can be judged. Deferred, not skipped.
+- None.
 
 ## In flight elsewhere
 
@@ -35,9 +34,6 @@ not been executed end to end on a live repo. That also answers `hk-006`'s open q
 
 | File | Change | Why |
 |------|--------|-----|
-| `profiles/ios-xcode.mjs` | Nested .xcodeproj probe | Deployment target read "unknown" on a real repo |
-| `scripts/lib/legacy.mjs` | New — existing-harness detection | hk-011 |
-| `scripts/lib/checks.mjs`, `audit.mjs` | Critical severity caps score | 97/100 for an unreachable harness |
-| `references/migrate.md` | New — migration procedure | Never delete; move content |
+| `FEATURES.md`, `archive/features/hk-006.md` | hk-006 closed + rotated | Real migration answered its open check |
 
 _Ground truth: run `git diff --stat` to confirm this table matches reality._
