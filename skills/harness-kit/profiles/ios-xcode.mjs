@@ -13,7 +13,8 @@ export default {
   probe: {
     workspace: "ls -d *.xcworkspace 2>/dev/null | head -1",
     project: "ls -d *.xcodeproj 2>/dev/null | head -1",
-    schemesJson: "xcodebuild -list -json 2>/dev/null",
+    // Slow on first run: Xcode resolves Swift packages before it will list schemes.
+    schemesJson: { cmd: 'xcodebuild -list -json 2>/dev/null', timeout: 120_000 },
     simulatorsJson: "xcrun simctl list devices available --json 2>/dev/null",
     deploymentTarget:
       "grep -m1 -o 'IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*' *.xcodeproj/project.pbxproj 2>/dev/null | head -1"

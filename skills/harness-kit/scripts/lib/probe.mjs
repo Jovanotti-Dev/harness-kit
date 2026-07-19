@@ -19,12 +19,25 @@ export function runProbe(command, cwd, timeout = 20_000) {
   }
 }
 
+// A probe may be a plain command string, or { cmd, timeout } when it is known
+// to be slow — `xcodebuild -list` can take over a minute while SPM resolves.
 export function runProbes(profile, cwd) {
   const results = {};
-  for (const [key, command] of Object.entries(profile.probe ?? {})) {
-    results[key] = runProbe(command, cwd);
+  for (const [key, spec] of Object.entries(profile.probe ?? {})) {
+    const cmd = typeof spec === 'string' ? spec : spec.cmd;
+    const timeout = typeof spec === 'string' ? undefined : spec.timeout;
+    results[key] = runProbe(cmd, cwd, timeout ?? 20_000);
   }
   return results;
+}
+
+// git config user.name can contain spaces and capitals ("Jovanes Jovanotti").
+// State files are addressed by a filesystem-safe slug of it.
+export function slugifyUser(name) {
+  return (name ?? 'unknown')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'unknown';
 }
 
 export function gitUser(cwd) {

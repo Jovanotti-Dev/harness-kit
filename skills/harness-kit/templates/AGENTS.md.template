@@ -6,8 +6,9 @@ Router for agent work. Facts live in the linked docs; this file is the map, not 
 ## Session startup
 
 1. Load the `harness-kit` skill first, every session.
-2. Read **your** state file — `state/<git config user.name>.md` (run `git config user.name`
-   to resolve it). It's the only state file you read in full: active feature, last verify
+2. Read **your** state file — resolve it with:
+   `echo "state/$(git config user.name | tr "[:upper:] " "[:lower:]-").md"`
+   It's the only state file you read in full: active feature, last verify
    result, blockers, next step. Never write to anyone else's state file.
 3. Read `CONSTITUTION.md` — the permanent rules and past decisions. Always in context.
 4. Run `{{VERIFY_PRIMARY}}` to confirm a clean baseline before editing.
@@ -47,8 +48,4 @@ recorded in its `FEATURES.md` sub-table, and your state file is updated with the
 
 ## Rules
 
-**All binding rules live in `CONSTITUTION.md`** — architecture, platform constraints, code
-prohibitions, process, and git. It is binding, not advisory: read it at startup (step 3),
-and if anything in this file appears to conflict with it, **`CONSTITUTION.md` wins.**
-
-Rules are deliberately not repeated here. One home, no drift.
+{{RULES_SECTION}}
