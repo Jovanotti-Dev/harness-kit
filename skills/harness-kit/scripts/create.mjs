@@ -72,6 +72,15 @@ const probeValues = {
   nodeVersion: probes.nodeVersion ?? 'unknown'
 };
 
+// Any probe that failed must still resolve to something. A missing toolchain is
+// normal — you should be able to scaffold a Flutter harness on a machine without
+// Flutter installed — and an unresolved {{token}} would abort generation.
+for (const key of Object.keys(probeValues)) {
+  if (probeValues[key] === null || probeValues[key] === undefined) {
+    probeValues[key] = 'not detected';
+  }
+}
+
 const blocks = buildVerifyBlocks(profile, probeValues, scripts);
 const d = profile.defaults ?? {};
 
