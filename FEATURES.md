@@ -8,7 +8,7 @@
 
 | Epic | Progress | Active / open |
 |------|:--------:|---------------|
-| harness-kit v1 | 14/14 ✅ | — all closed |
+| harness-kit v1 | 15/15 ✅ | — all closed |
 
 ---
 
@@ -32,6 +32,7 @@
 | hk-011 | Handle repos that already have a harness | ✅ | Jovanes Jovanotti | hk-003, hk-004 | [archive](archive/features/hk-011.md) |
 | hk-012 | Regression tests, one per known bug | ✅ | Jovanes Jovanotti | hk-011 | [archive](archive/features/hk-012.md) |
 | hk-013 | CI on every push | ✅ | Jovanes Jovanotti | hk-012 | [archive](archive/features/hk-013.md) |
+| hk-014 | Conditional "Knowledge graphs" section — detect graphify / code-review-graph, omit when neither is installed | ✅ | Jovanes Jovanotti | hk-003 | `scripts/lib/knowledge-graphs.mjs`; `tests/regression.test.mjs` bug 7a/7b/7c; `SELFTEST: PASS` |
 ---
 
 ## Shipped

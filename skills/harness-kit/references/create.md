@@ -30,6 +30,12 @@ node scripts/create.mjs --target /path/to/project [--profile standard] [--dry-ru
 3. **Render** — fills the templates and refuses to write any file that still contains a
    `{{PLACEHOLDER}}`.
 
+`AGENTS.md`'s "Knowledge graphs" section is conditional: `create` detects whether `graphify`
+and/or `code-review-graph` are already installed in the target (via `graphify-out/`, `.mcp.json`,
+and git hook markers) and writes a section documenting only the tool(s) actually present. If
+neither is installed, the section — and its heading — is omitted entirely rather than left as
+a dangling reference. See `scripts/lib/knowledge-graphs.mjs`.
+
 ## Rules
 
 - **Never invent a check.** If the profile's verify step needs an npm script that doesn't

@@ -3,6 +3,7 @@ import path from 'node:path';
 import { loadProfiles, detectStack } from './lib/detect.mjs';
 import { runProbes, gitUser, pickScheme, pickSimulator, parseScripts, slugifyUser } from './lib/probe.mjs';
 import { detectLegacy, formatLegacyReport } from './lib/legacy.mjs';
+import { detectKnowledgeGraphs, buildKnowledgeGraphsSection } from './lib/knowledge-graphs.mjs';
 import {
   render,
   assertNoPlaceholders,
@@ -128,6 +129,7 @@ const values = {
   VERIFY_PRIMARY: verifyList[0] ?? './verify.sh build',
   VERIFY_COMMANDS: (verifyList.length ? verifyList : ['./verify.sh build']).join('\n'),
   RULES_SECTION: tier === 'lite' ? inlineRules : rulesPointer,
+  KNOWLEDGE_GRAPHS_SECTION: buildKnowledgeGraphsSection(detectKnowledgeGraphs(target), target, tier),
 
   ARCHITECTURE_INVARIANTS: render(profile.constitution?.architecture ?? '', probeValues),
   PLATFORM_INVARIANTS: [

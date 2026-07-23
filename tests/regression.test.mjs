@@ -2,7 +2,7 @@
 // If one of these fails, a fix that was already shipped has been undone.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile, mkdir } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile, mkdir, readFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -12,6 +12,10 @@ import { runProbes, slugifyUser } from '../skills/harness-kit/scripts/lib/probe.
 import { runChecks } from '../skills/harness-kit/scripts/lib/checks.mjs';
 import { detectLegacy } from '../skills/harness-kit/scripts/lib/legacy.mjs';
 import iosProfile from '../skills/harness-kit/profiles/ios-xcode.mjs';
+import {
+  detectKnowledgeGraphs,
+  buildKnowledgeGraphsSection
+} from '../skills/harness-kit/scripts/lib/knowledge-graphs.mjs';
 
 const SCRIPTS = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -238,4 +242,65 @@ test('bug 6d: the iOS deployment target probe searches nested projects', () => {
     !/^grep -m1 -o 'IPHONEOS_DEPLOYMENT_TARGET.*\*\.xcodeproj/.test(cmd),
     'must not go back to the root-only glob'
   );
+});
+
+// ── Bug 7 ─────────────────────────────────────────────────────────────────────
+// AGENTS.md carried a hand-copied "Knowledge graphs" section on one project
+// and not another, and the wording drifted between the two copies. Detection
+// must be driven by what's actually installed in the target repo, and the
+// section must vanish entirely — no dangling heading — when neither tool is.
+test('bug 7a: neither graph tool installed produces an empty section', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'hk-bug7a-'));
+  try {
+    const detected = detectKnowledgeGraphs(dir);
+    assert.equal(detected.graphify, false);
+    assert.equal(detected.codeReviewGraph, false);
+    assert.equal(buildKnowledgeGraphsSection(detected, dir, 'standard'), '');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('bug 7b: both graph tools installed are both detected and both documented', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'hk-bug7b-'));
+  try {
+    await mkdir(path.join(dir, 'graphify-out'), { recursive: true });
+    await mkdir(path.join(dir, '.git', 'hooks'), { recursive: true });
+    await writeFile(
+      path.join(dir, '.mcp.json'),
+      JSON.stringify({ mcpServers: { 'code-review-graph': { command: 'uvx' } } })
+    );
+    await writeFile(path.join(dir, '.git', 'hooks', 'pre-commit'), '# Installed by code-review-graph\n');
+
+    const detected = detectKnowledgeGraphs(dir);
+    assert.equal(detected.graphify, true);
+    assert.equal(detected.codeReviewGraph, true);
+
+    const section = buildKnowledgeGraphsSection(detected, dir, 'standard');
+    assert.match(section, /## Knowledge graphs/);
+    assert.match(section, /code-review-graph \(MCP tools\)/);
+    assert.match(section, /\*\*graphify\*\*/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('bug 7c: create.mjs writes the section into AGENTS.md only when a tool is detected', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'hk-bug7c-'));
+  try {
+    execFileSync('git', ['init', '-q'], { cwd: dir });
+    execFileSync('git', ['config', 'user.name', 'Test User'], { cwd: dir });
+    await mkdir(path.join(dir, '.code-review-graph'), { recursive: true });
+
+    execFileSync('node', [path.join(SCRIPTS, 'create.mjs'), '--target', dir, '--profile', 'standard'], {
+      encoding: 'utf8'
+    });
+
+    const agents = await readFile(path.join(dir, 'AGENTS.md'), 'utf8');
+    assert.match(agents, /## Knowledge graphs/);
+    assert.match(agents, /code-review-graph/);
+    assert.doesNotMatch(agents, /\{\{KNOWLEDGE_GRAPHS_SECTION\}\}/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 });
