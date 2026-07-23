@@ -9,8 +9,8 @@
 
 - **Objective:** Ship harness-kit v1 — generator, audit, and the repo governing itself.
 - **Active feature:** none — every feature closed.
-- **Status:** ✅ 14/14 done. Regression tests + CI landed; parser bug found by the new tests.
-- **Last verify:** `SELFTEST: PASS` — repo audit 100/100 at v0.3.0.
+- **Status:** ✅ 15/15 done. hk-014 (conditional Knowledge graphs section) just landed.
+- **Last verify:** `npm test` → 25/25 passing, `SELFTEST: PASS` (2026-07-24).
 
 ## Next step
 
@@ -37,5 +37,10 @@ second person migrating one is far stronger evidence than another pass by the au
 | `tests/` | New — 22 unit + regression tests | hk-012 |
 | `scripts/lib/parse.mjs` | Fixed `|:-:|` separator parsed as data | Found by the new parser tests |
 | `.github/workflows/ci.yml` | New — CI on Node 20/22/24, Ubuntu | hk-013 |
+| `scripts/lib/knowledge-graphs.mjs` | New — detects graphify/code-review-graph, builds conditional section | hk-014 |
+| `scripts/create.mjs` | Wired `KNOWLEDGE_GRAPHS_SECTION` value | hk-014 |
+| `templates/AGENTS.md.template` | Added `{{KNOWLEDGE_GRAPHS_SECTION}}` placeholder | hk-014 |
+| `tests/regression.test.mjs` | Bug 7a/7b/7c — detection + section + create.mjs integration | hk-014 |
+| `references/create.md`, `FEATURES.md` | Documented behavior, closed hk-014 | hk-014 |
 
 _Ground truth: run `git diff --stat` to confirm this table matches reality._
