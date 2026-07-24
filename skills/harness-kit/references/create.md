@@ -56,6 +56,48 @@ The output is a skeleton, not a finished harness. Tell the user to fill in:
 
 Then confirm `./verify.sh build` actually passes before the first feature is started.
 
+## Workspace mode (monorepo)
+
+When several repos ship together from one monorepo root (e.g. `ios/`, `backoffice/`, `backend/`),
+one harness at the root governs them all. It activates when the target has a `WORKSPACE.md` — the
+explicit member registry (`Area · Path · Stack`). Monorepo only: one `.git` at the root.
+
+```bash
+# Declare members (Area is a label you choose; Stack is filled in by detection):
+cat > WORKSPACE.md <<'EOF'
+# Workspace
+
+| Area | Path | Stack |
+|------|------|-------|
+| ios        | ./ios        | ios-xcode    |
+| backoffice | ./backoffice | web-react    |
+| backend    | ./backend    | node-backend |
+EOF
+
+node scripts/create.mjs --target .            # generate the workspace harness
+node scripts/create.mjs --target . --add-member mobile --at ./mobile   # add one later
+```
+
+| Flag | Meaning |
+|---|---|
+| `--workspace` | Force workspace mode even without a `WORKSPACE.md` (prints guidance if absent) |
+| `--add-member AREA` | Append a member and generate just its files |
+| `--at PATH` | Path for `--add-member` (default `./AREA`) |
+
+What it writes at the root: `AGENTS.md` (shared map, routes to the right constitution),
+`CONSTITUTION.md` (shared rules) + `constitutions/<area>.md` per member, an **Area**-tagged
+`FEATURES.md`, one `state/<name>.md` per person, and a `verify.sh` orchestrator
+(`./verify.sh [area] [mode]`). Inside each member: only its `verify.sh` and a `CLAUDE.md`
+breadcrumb pointing up. Membership is read only from `WORKSPACE.md`, never guessed.
+
+- **One feature (row) active at a time per person** — the atomic unit is a `FEATURES.md` row,
+  not the story/epic. A cross-area story is one epic with one row per area, `Depends on` may
+  cross areas, and it's done when all its rows are ✅.
+- **If a member already has its own harness**, it is hoisted up to the root rather than left to
+  compete — see [workspace-migrate.md](workspace-migrate.md). Nothing is deleted.
+- The root `verify.sh` is regenerated on every run (it's fully derived from `WORKSPACE.md`);
+  per-member files and the root `AGENTS.md`/`FEATURES.md` are never overwritten.
+
 ## Adding a stack
 
 Add one file to `profiles/`. No code changes. Shape:

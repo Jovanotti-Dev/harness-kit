@@ -1,0 +1,46 @@
+# Constitution — {{PROJECT_NAME}} (workspace)
+
+> **Binding.** Shared rules for the whole monorepo. `AGENTS.md` describes *how to work*; this
+> file defines *what is always true everywhere*. Stack-specific rules live in
+> `constitutions/<area>.md` — read the one for the repo you are touching. On conflict, the
+> area file narrows within its stack; this file governs everything shared.
+> Never archived, always in context. Changing a rule is a deliberate amendment — date it.
+
+## Members
+
+Each member repo has its own stack rules in `constitutions/<area>.md`. `WORKSPACE.md` is the
+registry of areas → paths → stacks. Membership is explicit there; nothing is auto-discovered.
+
+## Prohibitions — process
+
+- **Never auto-commit.** Update files, report what changed, let the user decide.
+- Never mark a feature ✅ without evidence recorded in `FEATURES.md`.
+- **One feature (row) active at a time per person** — the atomic unit is a `FEATURES.md` row,
+  not the story/epic it belongs to. A cross-area story is worked one row at a time; it is done
+  when all its rows are ✅. Out-of-scope ideas become new rows, not drive-by edits.
+
+## Git
+
+- Base branch for PRs: `{{BASE_BRANCH}}`. Feature branches: `{{BRANCH_PATTERN}}`.
+- **Commit messages are prefixed with the feature ID:** `{{FEATURE_ID_EXAMPLE}}: <summary>`.
+  This lets `git log --grep="<id>"` corroborate the `By` column in `FEATURES.md`.
+- One `.git` at the workspace root governs every member (monorepo). A single commit may touch
+  more than one area.
+- **State is one file per person:** `state/<git config user.name>.md` — at the workspace root,
+  never per member. You write only your own file; nobody else touches it, so merge / rebase /
+  cherry-pick stay conflict-free by construction.
+- **Cross-person visibility lives in `FEATURES.md`, not in state files.** Its `Area` column
+  tells you which member each in-flight row touches.
+- Attribution comes from `git config user.name` on the machine running the session — never from
+  the agent, so it works identically for any tool.
+
+---
+
+## Decisions
+
+_Dated entries. Add one whenever an arguable choice gets settled — include the reasoning, so
+it can be reopened later without redoing the analysis. Amend by adding a new dated entry that
+supersedes the old one; never silently edit history._
+
+<!-- ### YYYY-MM-DD · <short title>
+     <the rule, then why it was chosen over the alternative> -->

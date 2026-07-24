@@ -91,3 +91,38 @@ export function parseScripts(scriptsJson) {
     return {};
   }
 }
+
+// Probe a target and assemble the render values a profile's templates need.
+// Single source of truth for the raw-probe → values derivation, shared by the
+// single-repo generator (create.mjs) and workspace member generation, so both
+// resolve {{nodeVersion}}, {{scheme}}, {{pmRun}} &c. identically. A failed probe
+// resolves to a safe string ('not detected') rather than an unresolved token.
+export function buildProbeValues(profile, target) {
+  const probes = runProbes(profile, target);
+  const scripts = parseScripts(probes.scriptsJson);
+  const scheme = pickScheme(probes.schemesJson);
+  const simulator = pickSimulator(probes.simulatorsJson);
+  const pm = probes.packageManager ?? 'npm';
+
+  const probeValues = {
+    ...probes,
+    scheme: scheme ?? 'TODO-scheme',
+    destination: simulator ? `platform=iOS Simulator,name=${simulator}` : 'platform=iOS Simulator,name=TODO',
+    workspace: probes.workspace ?? probes.project ?? 'TODO.xcworkspace',
+    deploymentTarget: (probes.deploymentTarget ?? 'unknown').replace('IPHONEOS_DEPLOYMENT_TARGET = ', 'iOS '),
+    packageManager: pm,
+    pmRun: pm === 'npm' ? 'npm run' : `${pm} run`,
+    nodeVersion: probes.nodeVersion ?? 'unknown'
+  };
+
+  // Any probe that failed must still resolve to something. A missing toolchain
+  // is normal — you should be able to scaffold on a machine without it — and an
+  // unresolved {{token}} would abort generation.
+  for (const key of Object.keys(probeValues)) {
+    if (probeValues[key] === null || probeValues[key] === undefined) {
+      probeValues[key] = 'not detected';
+    }
+  }
+
+  return { probeValues, scripts, scheme, simulator };
+}

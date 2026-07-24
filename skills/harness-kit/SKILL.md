@@ -23,6 +23,7 @@ from `git config user.name`, never from the agent.
 | Mode | When | Reference |
 |---|---|---|
 | **create** | Repo has no harness, or is missing files | [references/create.md](references/create.md) |
+| **workspace** | A monorepo root governs several member repos (`WORKSPACE.md`) | [references/create.md](references/create.md) · [workspace-migrate.md](references/workspace-migrate.md) |
 | **migrate** | Repo already has a harness (any flavour) | [references/migrate.md](references/migrate.md) |
 | **loop** | Any working session in a harnessed repo | [references/loop.md](references/loop.md) |
 | **audit** | Explicit request only — never run on your own initiative | [references/audit.md](references/audit.md) |
@@ -46,6 +47,10 @@ Default to `standard`. Offer `lite` when the repo is small and has no test tooli
 - **Never generate alongside an existing harness.** `create` refuses and prints a migration
   plan. Two competing instruction files means the agent follows the old one and never sees the
   new harness — a silent, total failure. Migrate instead; nothing gets deleted.
+- **Never generate a member harness alongside a workspace root.** In workspace mode the root
+  owns the harness; a member dir gets only its code, a `verify.sh`, and a `CLAUDE.md` breadcrumb
+  pointing up. Running `create` inside a member is the multi-repo form of the rule above —
+  add it with `--add-member`, or hoist an existing member harness up (workspace-migrate).
 - **Never auto-commit.** Update files, report, let the user decide.
 - **Never invent verification.** Only list checks the project actually has — detect them from
   manifests and probes. A check that can't run is worse than no check.

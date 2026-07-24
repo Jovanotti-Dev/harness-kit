@@ -1,0 +1,11 @@
+# Workspace
+
+> Member registry for a monorepo harness — the **single source of truth** for what counts
+> as a member. Membership is never auto-guessed: only repos listed here are governed by the
+> root harness. `Area` is a short, unique label you choose (not the stack name — two members
+> can share a stack). `Stack` is the profile harness-kit detected for that path.
+> Add a row to bring a new repo under the harness; remove one to drop it.
+
+| Area | Path | Stack |
+|------|------|-------|
+{{MEMBER_ROWS}}

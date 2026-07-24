@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 import path from 'node:path';
 import { loadProfiles, detectStack } from './lib/detect.mjs';
-import { runProbes, gitUser, pickScheme, pickSimulator, parseScripts, slugifyUser } from './lib/probe.mjs';
+import { gitUser, slugifyUser, buildProbeValues } from './lib/probe.mjs';
 import { detectLegacy, formatLegacyReport } from './lib/legacy.mjs';
 import { detectKnowledgeGraphs, buildKnowledgeGraphsSection } from './lib/knowledge-graphs.mjs';
+import { isWorkspace } from './lib/workspace.mjs';
+import { generateWorkspace } from './lib/workspace-generate.mjs';
 import {
   render,
   assertNoPlaceholders,
@@ -35,13 +37,16 @@ const args = parseArgs(process.argv.slice(2));
 
 if (args.help) {
   console.log(`Usage: node create.mjs [--target DIR] [--profile lite|standard|full]
-                      [--stack ID] [--dry-run] [--force]
+                      [--stack ID] [--workspace] [--dry-run] [--force]
 
 Detects the stack, probes the environment, and writes the harness files.
 Existing files are skipped unless --force.
 
 If the repo already has a harness, create refuses to write and prints a
-migration plan instead. Use --migrate to acknowledge and generate anyway.`);
+migration plan instead. Use --migrate to acknowledge and generate anyway.
+
+Workspace mode: if the target has a WORKSPACE.md (or --workspace is given),
+create treats it as a monorepo root and detects each member's stack.`);
   process.exit(0);
 }
 
@@ -49,6 +54,20 @@ const target = path.resolve(args.target || args._[0] || process.cwd());
 const tier = TIERS[args.profile] ? args.profile : 'standard';
 const dryRun = Boolean(args['dry-run']);
 const force = Boolean(args.force);
+
+// Workspace mode (ws-003): a WORKSPACE.md at the target — or an explicit
+// --workspace — means this is a monorepo root governing several members, not a
+// single repo. Branch here and exit; everything below is the untouched
+// single-repo path, so its output stays byte-for-byte identical when no
+// WORKSPACE.md is present.
+if (isWorkspace(target) || args.workspace || args['add-member']) {
+  const addMember =
+    typeof args['add-member'] === 'string'
+      ? { area: args['add-member'], path: args.at || `./${args['add-member']}` }
+      : null;
+  const res = await generateWorkspace(target, { tier, dryRun, force, addMember });
+  process.exit(res.ok ? 0 : 2);
+}
 
 // A repo that already has a harness must not be half-written into. Generating
 // alongside an existing CLAUDE.md leaves two competing instruction files, and
@@ -70,36 +89,10 @@ const profile = args.stack
   ? profiles.find((p) => p.id === args.stack) ?? (await detectStack(target, profiles))
   : await detectStack(target, profiles);
 
-const probes = runProbes(profile, target);
+const { probeValues, scripts, scheme, simulator } = buildProbeValues(profile, target);
 const user = gitUser(target) ?? 'unknown';
 const userSlug = slugifyUser(user);
-const scripts = parseScripts(probes.scriptsJson);
 const today = new Date().toISOString().slice(0, 10);
-
-// Stack-specific derivations from raw probe output.
-const scheme = pickScheme(probes.schemesJson);
-const simulator = pickSimulator(probes.simulatorsJson);
-const pm = probes.packageManager ?? 'npm';
-
-const probeValues = {
-  ...probes,
-  scheme: scheme ?? 'TODO-scheme',
-  destination: simulator ? `platform=iOS Simulator,name=${simulator}` : 'platform=iOS Simulator,name=TODO',
-  workspace: probes.workspace ?? probes.project ?? 'TODO.xcworkspace',
-  deploymentTarget: (probes.deploymentTarget ?? 'unknown').replace('IPHONEOS_DEPLOYMENT_TARGET = ', 'iOS '),
-  packageManager: pm,
-  pmRun: pm === 'npm' ? 'npm run' : `${pm} run`,
-  nodeVersion: probes.nodeVersion ?? 'unknown'
-};
-
-// Any probe that failed must still resolve to something. A missing toolchain is
-// normal — you should be able to scaffold a Flutter harness on a machine without
-// Flutter installed — and an unresolved {{token}} would abort generation.
-for (const key of Object.keys(probeValues)) {
-  if (probeValues[key] === null || probeValues[key] === undefined) {
-    probeValues[key] = 'not detected';
-  }
-}
 
 const blocks = buildVerifyBlocks(profile, probeValues, scripts);
 const d = profile.defaults ?? {};

@@ -1,0 +1,17 @@
+# Constitution — {{AREA_NAME}}
+
+> Stack rules for the `{{AREA_NAME}}` member ({{TECH_STACK}}). Shared process, git, and dated
+> decisions live in the root `CONSTITUTION.md`; this file adds only what is specific to this
+> stack. Read this alongside the root constitution whenever you work in `{{AREA_PATH}}`.
+
+## Invariants — architecture
+
+{{ARCHITECTURE_INVARIANTS}}
+
+## Invariants — platform
+
+{{PLATFORM_INVARIANTS}}
+
+## Prohibitions — code
+
+{{CODE_PROHIBITIONS}}

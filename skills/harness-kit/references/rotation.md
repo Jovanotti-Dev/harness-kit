@@ -44,6 +44,13 @@ Trigger: every feature in the epic is ✅.
   `JOURNAL.md` generalised into a rule, it belongs here, not in the archive.
 - `JOURNAL.md` — append-only and grepped, never read whole, so its size costs nothing.
 
+## Workspace mode
+
+Rotation is unchanged in a workspace: there is still exactly **one** `archive/` at the root, and
+one `FEATURES.md` to rotate detail out of — the `Area` column stays on the summary row. Member
+directories never get their own `archive/`. Files displaced by a hoist-migration live under
+`archive/legacy/<area>/` and are not part of normal feature/epic rotation.
+
 ## Why this order matters
 
 Write the archive file **first**, then remove the detail. Doing it the other way round means a
