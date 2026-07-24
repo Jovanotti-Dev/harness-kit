@@ -17,13 +17,14 @@
 
 ## Next step
 
-Epic done. Remaining housekeeping when ready (not blocking):
-- Rotate the closed `ws-*` epic per `references/rotation.md` (move detail to `archive/epics/`,
-  add a Shipped line) — optional now, required before the hot files bloat.
-- Commit the branch (nothing committed yet, per never-auto-commit). Suggested: a `ws-` prefixed
-  commit / PR for the whole Workspace-mode epic.
-- Real-world shakedown: run `--target` a genuine 3-repo monorepo (ios/backoffice/backend) and a
+Epic done, committed (PR #2, `d28f38e`), CI green on Node 20/22/24, and **rotated** to
+`archive/epics/workspace-mode.md` (Shipped line in `FEATURES.md`; the 3 dated decisions moved
+into `CONSTITUTION.md` so they persist). Remaining, when ready (not blocking):
+- Merge PR #2.
+- Real-world shakedown: `--target` a genuine 3-repo monorepo (ios/backoffice/backend) and a
   hoist on a repo that already had a single-repo harness.
+- Optional: the `harness-kit v1` epic (15/15 ✅) is also unrotated — rotate it the same way if
+  desired.
 
 ## Parked
 
