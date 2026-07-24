@@ -1,0 +1,36 @@
+# Features
+
+> Scope backbone for the whole workspace, grouped by epic (one epic = one story = one ID prefix).
+> Status: 🟡 not started · 🔵 in progress · ✅ done · 🔴 blocked · 🟠 needs verification
+> **Area** tags each row to a member repo (see `WORKSPACE.md`). `Depends on` may cross areas —
+> a mobile row can wait on a backend row.
+> **One feature (row) is active at a time per person** — a cross-area story is one epic with one
+> row per area, worked one row at a time; it is done when all its rows are ✅.
+> `By` = who did the work, from `git config user.name`. Completed feature detail →
+> `archive/features/`; completed epics → `archive/epics/`, listed under Shipped.
+
+| Epic | Progress | Active / open |
+|------|:--------:|---------------|
+| {{EPIC_NAME}} | 0/{{FEATURE_COUNT}} | — |
+
+---
+
+## Epic · {{EPIC_NAME}}
+
+**PRD:** {{PRD_PATH}} · **Prefix:** `{{ID_PREFIX}}`
+**Started:** {{TODAY}} · **Started by:** {{GIT_USER}}
+
+> Example cross-area story — one epic whose rows fan out across members, with the non-backend
+> rows depending on the backend row. Replace with your own scope.
+
+| ID | Feature | Area | Status | By | Depends on | Evidence |
+|----|---------|------|:------:|----|------------|----------|
+{{FEATURE_ROWS}}
+
+---
+
+## Shipped
+
+Completed epics, rotated to `archive/epics/`. One line each.
+
+_None yet._

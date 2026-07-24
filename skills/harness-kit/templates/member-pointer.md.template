@@ -1,0 +1,17 @@
+@../AGENTS.md
+@../constitutions/{{AREA_NAME}}.md
+
+<!--
+  {{AREA_NAME}} — member of a harness-kit WORKSPACE rooted one level up.
+
+  Do NOT create a separate harness in this directory. Doing so leaves two
+  competing instruction sets and the agent follows the wrong one. This repo is
+  governed by the root harness:
+
+    ../AGENTS.md                     how to work (shared map)
+    ../CONSTITUTION.md               shared rules
+    ../constitutions/{{AREA_NAME}}.md  this member's stack rules
+
+  Your state file, the backlog (FEATURES.md), and verify all live at the root.
+  Run `./verify.sh {{AREA_NAME}}` from the root to check just this member.
+-->

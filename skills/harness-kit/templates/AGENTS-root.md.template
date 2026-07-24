@@ -1,0 +1,58 @@
+# AGENTS.md
+
+{{PROJECT_NAME}} — {{PROJECT_DESCRIPTION}}
+Monorepo router for agent work. One harness at the root governs several member repos.
+Facts live in the linked docs; this file is the map, not the manual.
+
+## Members
+
+`WORKSPACE.md` is the registry (Area · Path · Stack). Membership is explicit there.
+
+{{WORKSPACE_AREAS}}
+
+## Session startup
+
+1. Load the `harness-kit` skill first, every session.
+2. Read **your** state file — resolve it with:
+   `echo "state/$(git config user.name | tr "[:upper:] " "[:lower:]-").md"`
+   One state file per person at the **root**, not per member: active feature, last verify
+   result, blockers, next step. Never write to anyone else's state file.
+3. Read the root `CONSTITUTION.md` (shared rules), **plus** `constitutions/<area>.md` for the
+   member you are touching (its stack rules). Both are always in context while you work there.
+4. Run `{{VERIFY_PRIMARY}}` to confirm a clean baseline before editing.
+5. Pick the **one** ready feature (row) from `FEATURES.md` (all its `Depends on` are ✅). Its
+   `Area` tells you which member it touches. Set its status to 🔵 and start.
+
+## Verification
+
+Run before claiming any work done. All checks must pass.
+
+```bash
+./verify.sh            # every member, in WORKSPACE.md order
+./verify.sh <area>     # just one member — faster while iterating
+```
+
+`verify.sh` prints a final `HARNESS_VERIFY: PASS` / `FAIL` line — that line is your evidence.
+Only checks each member actually has are listed. Do not invent lint/test/e2e steps.
+
+## Definition of done
+
+A feature (row) is `✅` only when: its `Done when` criteria are met, `verify.sh` passes for its
+Area, evidence (naming that Area) is recorded in its `FEATURES.md` sub-table, and your state
+file is updated with the next step. A cross-area story is done when all its rows are ✅.
+
+## Session handoff
+
+- Keep your state file current in real time — flip status the moment it changes.
+- After every edit, append to its `Changes` table (file · what · why).
+- Before ending: run verify, record the result, leave your state file resumable on its own.
+- When a feature closes, rotate its detail to `archive/features/<id>.md` and replace its
+  Evidence cell with a link. Write the archive file *first*, then remove the detail.
+
+---
+
+## Rules
+
+**Shared rules live in `CONSTITUTION.md`; stack rules live in `constitutions/<area>.md`.** Read
+the root file always, and the area file for whatever member you are in. On conflict, the area
+file narrows within its stack; the root governs everything shared. One home per rule, no drift.

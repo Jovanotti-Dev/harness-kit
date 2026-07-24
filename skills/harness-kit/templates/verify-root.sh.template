@@ -1,0 +1,59 @@
+#!/bin/bash
+# Workspace verify orchestrator for {{PROJECT_NAME}}. Run from the workspace root.
+# Usage: ./verify.sh [area] [mode]
+#   ./verify.sh                every member, default mode
+#   ./verify.sh backend        just the backend member
+#   ./verify.sh backend test   just backend, test mode
+#   ./verify.sh test           every member, test mode
+# Each member runs its own verify.sh; this prints one aggregate line at the end:
+#   HARNESS_VERIFY: PASS|FAIL (workspace <mode>[ :<area>])
+set -uo pipefail
+
+# Members, generated from WORKSPACE.md at scaffold time.
+AREAS=({{MEMBER_AREAS}})
+PATHS=({{MEMBER_PATHS}})
+
+is_mode() { case "$1" in build|test|lint|all) return 0 ;; *) return 1 ;; esac; }
+
+AREA=""
+MODE="build"
+if [ $# -ge 1 ]; then
+  if is_mode "$1"; then MODE="$1"
+  else AREA="$1"; [ $# -ge 2 ] && MODE="$2"; fi
+fi
+
+run_member() {
+  local area="$1" dir="$2"
+  if [ ! -x "$dir/verify.sh" ]; then
+    echo "HARNESS_VERIFY: FAIL ($area — no verify.sh at $dir)"
+    return 1
+  fi
+  ( cd "$dir" && ./verify.sh "$MODE" )
+}
+
+rc=0
+if [ -n "$AREA" ]; then
+  found=0
+  for i in "${!AREAS[@]}"; do
+    if [ "${AREAS[$i]}" = "$AREA" ]; then
+      run_member "$AREA" "${PATHS[$i]}" || rc=1
+      found=1; break
+    fi
+  done
+  if [ "$found" -eq 0 ]; then
+    echo "Unknown area: $AREA (known: ${AREAS[*]})"
+    exit 2
+  fi
+else
+  for i in "${!AREAS[@]}"; do
+    echo "── ${AREAS[$i]} ──"
+    run_member "${AREAS[$i]}" "${PATHS[$i]}" || rc=1
+  done
+fi
+
+if [ "$rc" -eq 0 ]; then
+  echo "HARNESS_VERIFY: PASS (workspace $MODE${AREA:+ :$AREA})"
+else
+  echo "HARNESS_VERIFY: FAIL (workspace $MODE${AREA:+ :$AREA})"
+fi
+exit "$rc"
