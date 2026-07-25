@@ -47,7 +47,7 @@ into `CONSTITUTION.md` so they persist). Remaining, when ready (not blocking):
 | `.github/workflows/ci.yml` | New — CI on Node 20/22/24, Ubuntu | hk-013 |
 | `scripts/lib/knowledge-graphs.mjs` | New — detects graphify/code-review-graph, builds conditional section | hk-014 |
 | `scripts/create.mjs` | Wired `KNOWLEDGE_GRAPHS_SECTION` value | hk-014 |
-| `templates/AGENTS.md.template` | Added `{{KNOWLEDGE_GRAPHS_SECTION}}` placeholder | hk-014 |
+| `templates/AGENTS.md.template` | Added the KNOWLEDGE_GRAPHS_SECTION placeholder | hk-014 |
 | `tests/regression.test.mjs` | Bug 7a/7b/7c — detection + section + create.mjs integration | hk-014 |
 | `references/create.md`, `FEATURES.md` | Documented behavior, closed hk-014 | hk-014 |
 | `FEATURES.md` | Added `WS` epic (ws-001..012) + Area column + dated decisions | Workspace mode design |
