@@ -13,8 +13,10 @@ attribution comes from `git config`, so it works the same under Claude Code, Cod
 ## Install
 
 ```bash
-npx skills add <username>/harness-kit
+npx skills add Jovanotti-Dev/harness-kit
 ```
+
+(Replace `Jovanotti-Dev` with your own GitHub username/org if you've forked this repo.)
 
 ## Use
 
