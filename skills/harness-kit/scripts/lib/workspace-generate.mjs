@@ -203,6 +203,7 @@ function bashArray(items) {
 // aggregate HARNESS_VERIFY line. Only members with an existing dir get a
 // verify.sh and a slot in the root orchestrator.
 async function writeVerify(root, members, profiles, opts) {
+  const { memberAdded = false, ...writeOpts } = opts;
   const results = [];
   const present = members.filter((m) => !m.missing);
 
@@ -218,7 +219,7 @@ async function writeVerify(root, members, profiles, opts) {
       LINT_BLOCK: blocks.lint
     });
     assertNoPlaceholders(out, `${m.path}/verify.sh`);
-    results.push(await writeOut(root, path.join(m.path, 'verify.sh'), out, opts));
+    results.push(await writeOut(root, path.join(m.path, 'verify.sh'), out, writeOpts));
   }
 
   const rootRaw = await readTemplate('verify-root.sh.template');
@@ -228,11 +229,16 @@ async function writeVerify(root, members, profiles, opts) {
     MEMBER_PATHS: bashArray(present.map((m) => m.path))
   });
   assertNoPlaceholders(rootOut, 'verify.sh');
-  // The root orchestrator is 100% derived from WORKSPACE.md — no user content
-  // lives in it — so it is always regenerated. This is what makes adding a
-  // member later (ws-010) show up in verify without a stale hand-edit; a new
-  // member that is missing here would be silently unverified.
-  results.push(await writeOut(root, 'verify.sh', rootOut, { ...opts, force: true }));
+  // wsp-007: the root orchestrator is 100% derived from WORKSPACE.md — no
+  // user content belongs in it — but a plain re-run must not clobber a
+  // hand-edited one either ("never overwrite blindly", same as every other
+  // generated file). force only when the caller asked for it, or when this
+  // run actually changed membership (--add-member): that is the one case
+  // where regenerating is required, so a new member doesn't go silently
+  // unverified because the file already existed.
+  results.push(
+    await writeOut(root, 'verify.sh', rootOut, { ...writeOpts, force: writeOpts.force || memberAdded })
+  );
 
   // Members we could not generate verify for, reported for visibility.
   for (const m of members.filter((x) => x.missing)) {
@@ -297,8 +303,13 @@ export async function generateWorkspace(root, opts = {}) {
   // Add-a-member-later (ws-010): append the row before anything else, so the
   // rest of generation (detection, per-member files, the verify orchestrator)
   // naturally picks it up. Existing members are untouched (skip-existing).
+  // memberAdded is threaded to writeVerify (wsp-007): only a real membership
+  // change forces the root verify.sh to regenerate; a plain re-run must not
+  // clobber a hand-edited orchestrator.
+  let memberAdded = false;
   if (toAdd && isWorkspace(root) && !dryRun) {
     const { added } = await addMember(root, toAdd.area, toAdd.path);
+    memberAdded = added;
     console.log(
       added
         ? `  added member: ${toAdd.area} → ${toAdd.path}`
@@ -404,7 +415,7 @@ export async function generateWorkspace(root, opts = {}) {
     ...(await writeArchive(root, { force, dryRun })),
     ...(await writeFullTierDocs(root, tier, { force, dryRun })),
     ...(await writeBreadcrumbs(root, members, { force, dryRun })),
-    ...(await writeVerify(root, members, profiles, { force, dryRun }))
+    ...(await writeVerify(root, members, profiles, { force, dryRun, memberAdded }))
   ];
 
   console.log('');
