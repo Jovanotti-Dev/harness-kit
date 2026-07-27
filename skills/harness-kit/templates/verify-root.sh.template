@@ -32,11 +32,12 @@ run_member() {
 }
 
 rc=0
+failed=()
 if [ -n "$AREA" ]; then
   found=0
   for i in "${!AREAS[@]}"; do
     if [ "${AREAS[$i]}" = "$AREA" ]; then
-      run_member "$AREA" "${PATHS[$i]}" || rc=1
+      run_member "$AREA" "${PATHS[$i]}" || { rc=1; failed+=("$AREA"); }
       found=1; break
     fi
   done
@@ -47,13 +48,17 @@ if [ -n "$AREA" ]; then
 else
   for i in "${!AREAS[@]}"; do
     echo "── ${AREAS[$i]} ──"
-    run_member "${AREAS[$i]}" "${PATHS[$i]}" || rc=1
+    run_member "${AREAS[$i]}" "${PATHS[$i]}" || { rc=1; failed+=("${AREAS[$i]}"); }
   done
 fi
 
 if [ "$rc" -eq 0 ]; then
   echo "HARNESS_VERIFY: PASS (workspace $MODE${AREA:+ :$AREA})"
 else
-  echo "HARNESS_VERIFY: FAIL (workspace $MODE${AREA:+ :$AREA})"
+  # `failed` is only expanded here, once rc=1 guarantees it is non-empty —
+  # referencing an empty array under `set -u` throws in bash 3.2 (macOS's
+  # default /bin/bash), so this must never run on the PASS path above.
+  IFS=,; failed_list="${failed[*]}"; unset IFS
+  echo "HARNESS_VERIFY: FAIL (workspace $MODE${AREA:+ :$AREA} — failed: $failed_list)"
 fi
 exit "$rc"

@@ -7,14 +7,14 @@
 
 ## Now
 
-- **Objective:** Implement `wsp-007` — root `verify.sh` stops clobbering user edits.
-- **Active feature:** `wsp-007` — ✅ **done**, closed and rotated.
-- **Status:** `wsp-007` implemented on `feature/wsp-007-verify-no-clobber`. The root
-  `verify.sh` write was hardcoded `force: true` — deliberate, to make `--add-member` (`ws-010`)
-  regenerate the orchestrator, but it clobbered hand-edits on every plain re-run too. Captured
-  whether `--add-member` actually changed membership this run (`memberAdded`) and force only on
-  that or explicit `--force`. Confirmed `ws-010`'s two existing tests still pass unaffected.
-- **Last verify:** `./verify.sh test` → 76/76 (was 74), `HARNESS_VERIFY: PASS` (2026-07-27).
+- **Objective:** Implement `wsp-008` — workspace verify aggregate names the failing area(s).
+- **Active feature:** `wsp-008` — ✅ **done**, closed and rotated.
+- **Status:** `wsp-008` implemented on `feature/wsp-008-verify-aggregate-names-failures`.
+  `verify-root.sh.template` gains a `failed=()` array, appended at both places `rc=1` is set
+  (single-area and run-all); the `FAIL` line lists them comma-joined. Guarded the one shell
+  gotcha explicitly: `${failed[*]}` only expands on the FAIL branch, since referencing an empty
+  array under `set -u` throws in bash 3.2 (macOS's default `/bin/bash`).
+- **Last verify:** `./verify.sh test` → 78/78 (was 76), `HARNESS_VERIFY: PASS` (2026-07-27).
   Self-audit: **100/100**.
 
 ### Shakedown findings
@@ -42,14 +42,15 @@ member) broke nothing observed on these paths, despite being the deferred config
 
 ## Next step
 
-Epic **Workspace parity & repo shapes** (`wsp-001..009`) is `7/9` — `wsp-001` through `wsp-007`
-shipped and merged (#11-#16, and this one).
+Epic **Workspace parity & repo shapes** (`wsp-001..009`) is `8/9` — `wsp-001` through `wsp-008`
+shipped and merged (#11-#17, and this one). One row left.
 
-`wsp-007` closed. 2 new tests, confirmed non-decorative (stashed the source: the plain-re-run
-test failed, the `--force` test passed either way since that path was never broken).
+`wsp-008` closed — the last of the original six shakedown findings. 2 new tests plus a
+strengthened existing `ws-008` assertion, confirmed non-decorative (stashed the template: all
+3 assertions failed, all pass restored).
 
-Next: `wsp-008` (workspace verify aggregate names the failing area(s)) — no dependency, ready to
-start. Last row before `wsp-009` (interactive adopt), which is the largest remaining piece.
+Next: `wsp-009` (interactive adopt — pick members, import each with history, stop before the
+destructive step) — depends on `wsp-005`, now unblocked. Last row in the epic; closes it at 9/9.
 
 Twyne remains converted and pushed (unrelated prior work): 4 repos → 1, 230 commits, CI green.
 
@@ -77,9 +78,9 @@ the user's choice).
 
 | File | Change | Why |
 |------|--------|-----|
-| `scripts/lib/workspace-generate.mjs` | Capture `memberAdded`; force the root `verify.sh` only on that or explicit `--force` | wsp-007 |
-| `tests/workspace.test.mjs` | +2 tests: hand-edit survives a plain re-run, `--force` still overrides | wsp-007 |
-| `FEATURES.md` | `wsp-007` → ✅, progress 7/9, evidence link | Close the row |
-| `archive/features/wsp-007.md` | New — full detail, evidence table | Rotation on close |
+| `templates/verify-root.sh.template` | `failed=()` array, named in the `FAIL` line, comma-joined; guarded the empty-array-under-`set -u` bash 3.2 gotcha | wsp-008 |
+| `tests/workspace.test.mjs` | Strengthened `ws-008`'s FAIL assertion; +2 new tests (multi-failure, single-area failure) | wsp-008 |
+| `FEATURES.md` | `wsp-008` → ✅, progress 8/9, evidence link | Close the row |
+| `archive/features/wsp-008.md` | New — full detail, evidence table | Rotation on close |
 
 _Ground truth: run `git diff --stat` to confirm this table matches reality._
