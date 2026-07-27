@@ -7,14 +7,13 @@
 
 ## Now
 
-- **Objective:** Implement `wsp-002` — workspace honours `--profile` tiers.
-- **Active feature:** `wsp-002` — ✅ **done**, closed and rotated.
-- **Status:** `wsp-002` implemented on `feature/wsp-002-workspace-profile-tiers`. `tier` was
-  already threaded from `create.mjs` into `generateWorkspace` since `ws-003` but never read;
-  added `writeFullTierDocs` gated on `tier === 'full'`. `CONSTITUTION.md`/`FEATURES.md` stay
-  unconditional at a workspace root regardless of tier — per-area routing and Area-tagged
-  `FEATURES.md` depend on them structurally, unlike single-repo's `lite` tier.
-- **Last verify:** `./verify.sh test` → 66/66 (was 64), `HARNESS_VERIFY: PASS` (2026-07-27).
+- **Objective:** Implement `wsp-003` — `create` refuses at a workspace root carrying a foreign harness.
+- **Active feature:** `wsp-003` — ✅ **done**, closed and rotated.
+- **Status:** `wsp-003` implemented on `feature/wsp-003-workspace-foreign-harness-refuse`.
+  `detectLegacy` is target-agnostic, so the identical single-repo refusal now runs inside
+  `generateWorkspace` right after the `isWorkspace` guard. No `--migrate` escape yet — that path
+  doesn't exist until `wsp-004`, so the message points at resolving by hand.
+- **Last verify:** `./verify.sh test` → 68/68 (was 66), `HARNESS_VERIFY: PASS` (2026-07-27).
   Self-audit: **100/100**.
 
 ### Shakedown findings
@@ -42,18 +41,16 @@ member) broke nothing observed on these paths, despite being the deferred config
 
 ## Next step
 
-Epic **Workspace parity & repo shapes** (`wsp-001..009`) is open in `FEATURES.md`; the model
-and the polyrepo policy are written up in `docs/workspace.md` §10 and bound in
-`CONSTITUTION.md`. Nothing is coded yet.
+Epic **Workspace parity & repo shapes** (`wsp-001..009`) is `3/9` — `wsp-001`, `wsp-002` and
+`wsp-003` shipped and merged (#11, #12, and this one).
 
-`wsp-002` closed. 2 new tests: the positive case confirmed failing before the fix (stashed the
-source — full-tier test failed, standard-tier guard still passed, correctly, since that one is
-a regression guard rather than a fix-detector).
+`wsp-003` closed — the exact bug reproduced live during the shakedown. 2 new tests, confirmed
+non-decorative (stashed the source: the refusal test failed, the clean-workspace regression
+guard still passed, correctly).
 
-Next: `wsp-003` (`create` refuses at a workspace root carrying a foreign harness) — no
-dependency, ready to start. This is the one reproduced live during the shakedown: generation
-wrote a full harness beside a `CLAUDE.md` reading "always read progress.md first, never run
-tests" and the old file was silently skipped rather than flagged.
+Next: `wsp-004` (workspace-level migrate) depends on `wsp-003` and is now unblocked — the repair
+half of the refuse/repair pair, folding a foreign root harness in rather than leaving the user
+stuck once `wsp-003` refuses.
 
 Twyne remains converted and pushed (unrelated prior work): 4 repos → 1, 230 commits, CI green.
 
@@ -81,9 +78,10 @@ the user's choice).
 
 | File | Change | Why |
 |------|--------|-----|
-| `scripts/lib/workspace-generate.mjs` | Read `tier`, added `writeFullTierDocs` gated on `full` | wsp-002 |
-| `tests/workspace.test.mjs` | +2 tests: full-tier writes both files, standard-tier writes neither | wsp-002 |
-| `FEATURES.md` | `wsp-002` → ✅, progress 2/9, evidence link | Close the row |
-| `archive/features/wsp-002.md` | New — full detail, evidence table, scope decision on `lite` | Rotation on close |
+| `scripts/lib/legacy.mjs` | (no change — reused unmodified; confirmed target-agnostic) | wsp-003 |
+| `scripts/lib/workspace-generate.mjs` | Import `detectLegacy`/`formatLegacyReport`; refuse-and-report block after the `isWorkspace` guard | wsp-003 |
+| `tests/workspace.test.mjs` | +2 tests: refuses with the exact shakedown repro, clean-root regression guard | wsp-003 |
+| `FEATURES.md` | `wsp-003` → ✅, progress 3/9, evidence link | Close the row |
+| `archive/features/wsp-003.md` | New — full detail, evidence table | Rotation on close |
 
 _Ground truth: run `git diff --stat` to confirm this table matches reality._

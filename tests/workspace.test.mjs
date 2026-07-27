@@ -882,3 +882,68 @@ test('wsp-002: --profile standard (default) does not write JOURNAL.md or evaluat
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+// ── wsp-003 ──────────────────────────────────────────────────────────────────
+// Single-repo create refuses to write beside an existing foreign harness.
+// Workspace mode never bound the same guard at the root — reproduced live
+// during the shakedown: it wrote a full harness beside a hand-written
+// CLAUDE.md reading "always read progress.md first, never run tests", which
+// was silently skipped rather than flagged.
+test('wsp-003: create refuses at a workspace root carrying a foreign harness', async () => {
+  const dir = await tmp();
+  try {
+    const ok = 'node -e "process.exit(0)"';
+    await pkgScripts(path.join(dir, 'svc'), { build: ok }, {});
+    await writeMembers(dir, [{ area: 'svc', path: './svc', stack: 'tbd' }]);
+    initGit(dir);
+
+    // A foreign harness already governs the root — not a pointer to AGENTS.md.
+    await writeFile(
+      path.join(dir, 'CLAUDE.md'),
+      'Always read progress.md first. Never run tests.\n'
+    );
+    await writeFile(path.join(dir, 'progress.md'), '# history\n');
+
+    let code = 0;
+    let out = '';
+    try {
+      out = runCreate(dir);
+    } catch (e) {
+      code = e.status;
+      out = e.stdout ?? '';
+    }
+
+    assert.equal(code, 2, 'must exit 2 rather than writing');
+    assert.match(out, /refusing to write/i);
+    assert.match(out, /progress\.md/);
+    // The whole point: nothing new was written alongside the old harness.
+    assert.equal(existsSync(path.join(dir, 'AGENTS.md')), false);
+    assert.equal(existsSync(path.join(dir, 'CONSTITUTION.md')), false);
+    assert.equal(existsSync(path.join(dir, 'FEATURES.md')), false);
+    // The old harness is untouched, not deleted or edited.
+    assert.match(
+      await readFile(path.join(dir, 'CLAUDE.md'), 'utf8'),
+      /Never run tests/
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('wsp-003 REGRESSION GUARD: a clean workspace root still generates normally', async () => {
+  const dir = await tmp();
+  try {
+    const ok = 'node -e "process.exit(0)"';
+    await pkgScripts(path.join(dir, 'svc'), { build: ok }, {});
+    await writeMembers(dir, [{ area: 'svc', path: './svc', stack: 'tbd' }]);
+    initGit(dir);
+
+    const out = runCreate(dir);
+
+    assert.doesNotMatch(out, /refusing to write/i);
+    assert.ok(existsSync(path.join(dir, 'AGENTS.md')));
+    assert.ok(existsSync(path.join(dir, 'CONSTITUTION.md')));
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
