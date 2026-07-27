@@ -21,9 +21,14 @@ registry of areas → paths → stacks. Membership is explicit there; nothing is
 
 ## Git
 
-- Base branch for PRs: `{{BASE_BRANCH}}`. Feature branches: `{{BRANCH_PATTERN}}`.
-- **Commit messages are prefixed with the feature ID:** `{{FEATURE_ID_EXAMPLE}}: <summary>`.
-  This lets `git log --grep="<id>"` corroborate the `By` column in `FEATURES.md`.
+- Base branch for PRs: `{{BASE_BRANCH}}`. One unit of work per branch — feature work on
+  `{{BRANCH_PATTERN}}`, maintenance that belongs to no feature row on `<type>/<topic>`
+  (`fix/`, `docs/`, `chore/`).
+- **Commit messages are prefixed with the feature ID** when the work belongs to a feature row:
+  `{{FEATURE_ID_EXAMPLE}}: <summary>`. This lets `git log --grep="<id>"` corroborate the `By`
+  column in `FEATURES.md`.
+- **Maintenance commits use a type prefix instead:** `fix:`, `docs:`, `chore:`. For work too
+  small to track, not an escape from tracking — past one session, it gets a row.
 - One `.git` at the workspace root governs every member (monorepo). A single commit may touch
   more than one area.
 - **State is one file per person:** `state/<git config user.name>.md` — at the workspace root,
