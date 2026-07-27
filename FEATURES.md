@@ -8,7 +8,7 @@
 
 | Epic | Progress | Active / open |
 |------|:--------:|---------------|
-| [Workspace parity & repo shapes](#epic--workspace-parity--repo-shapes) | 7/9 | `wsp-008` ready |
+| [Workspace parity & repo shapes](#epic--workspace-parity--repo-shapes) | 8/9 | `wsp-009` ready |
 
 ---
 
@@ -32,7 +32,7 @@ the file set rather than on the audit passing.
 | `wsp-005` | Polyrepo detected → refuse + print conversion plan; `.git` never touched | ✅ | Jovanes Jovanotti | — | [archive](archive/features/wsp-005.md) |
 | `wsp-006` | Evidence-link check accepts URLs instead of failing them as dead paths | ✅ | Jovanes Jovanotti | — | [archive](archive/features/wsp-006.md) |
 | `wsp-007` | Root `verify.sh` stops clobbering user edits on re-run | ✅ | Jovanes Jovanotti | — | [archive](archive/features/wsp-007.md) |
-| `wsp-008` | Workspace verify aggregate names the failing area(s) | 🟡 | — | — | — |
+| `wsp-008` | Workspace verify aggregate names the failing area(s) | ✅ | Jovanes Jovanotti | — | [archive](archive/features/wsp-008.md) |
 | `wsp-009` | Interactive adopt: pick members, import each **with history**, stop before the destructive step | 🟡 | — | `wsp-005` | — |
 
 `wsp-003` is the refusal (stop the damage); `wsp-004` is the repair (move the content). They

@@ -486,7 +486,31 @@ test('ws-008: a failing member makes the workspace aggregate FAIL (non-zero exit
 
     const res = runVerify(dir, ['build']);
     assert.notEqual(res.code, 0, 'aggregate must exit non-zero when a member fails');
-    assert.match(res.stdout, /HARNESS_VERIFY: FAIL \(workspace build\)/);
+    // wsp-008: the aggregate line names which member failed, rather than
+    // leaving the reader to scroll back through per-member output to find it.
+    assert.match(res.stdout, /HARNESS_VERIFY: FAIL \(workspace build — failed: web\)/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('wsp-008: multiple failing members are all named, comma-joined', async () => {
+  const dir = await tmp();
+  try {
+    await pkgScripts(path.join(dir, 'api'), { build: 'node -e "process.exit(1)"' }, {});
+    await pkgScripts(path.join(dir, 'web'), { build: 'node -e "process.exit(1)"' }, {});
+    await pkgScripts(path.join(dir, 'ok'), { build: 'node -e "process.exit(0)"' }, {});
+    await writeMembers(dir, [
+      { area: 'api', path: './api', stack: 'tbd' },
+      { area: 'web', path: './web', stack: 'tbd' },
+      { area: 'ok', path: './ok', stack: 'tbd' }
+    ]);
+    runCreate(dir);
+
+    const res = runVerify(dir, ['build']);
+    assert.notEqual(res.code, 0);
+    assert.match(res.stdout, /HARNESS_VERIFY: FAIL \(workspace build — failed: api,web\)/);
+    assert.doesNotMatch(res.stdout, /failed: .*\bok\b/, 'the passing member must not be named');
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -1131,6 +1155,25 @@ test('wsp-007: --force still regenerates the root verify.sh over a hand-edit', a
 
     const after = await readFile(path.join(dir, 'verify.sh'), 'utf8');
     assert.doesNotMatch(after, /# hand-edit: notify slack/, '--force must still override');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('wsp-008: a failing single-area run also names it in the aggregate line', async () => {
+  const dir = await tmp();
+  try {
+    await pkgScripts(path.join(dir, 'api'), { build: 'node -e "process.exit(1)"' }, {});
+    await pkgScripts(path.join(dir, 'web'), { build: 'node -e "process.exit(0)"' }, {});
+    await writeMembers(dir, [
+      { area: 'api', path: './api', stack: 'tbd' },
+      { area: 'web', path: './web', stack: 'tbd' }
+    ]);
+    runCreate(dir);
+
+    const res = runVerify(dir, ['api', 'build']);
+    assert.notEqual(res.code, 0);
+    assert.match(res.stdout, /HARNESS_VERIFY: FAIL \(workspace build :api — failed: api\)/);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
