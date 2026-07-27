@@ -8,7 +8,7 @@
 
 | Epic | Progress | Active / open |
 |------|:--------:|---------------|
-| [Workspace parity & repo shapes](#epic--workspace-parity--repo-shapes) | 1/9 | `wsp-002` ready |
+| [Workspace parity & repo shapes](#epic--workspace-parity--repo-shapes) | 2/9 | `wsp-003` ready |
 
 ---
 
@@ -26,7 +26,7 @@ the file set rather than on the audit passing.
 | ID | Feature | Status | By | Depends on | Evidence |
 |----|---------|:------:|----|------------|----------|
 | `wsp-001` | Workspace generates `state/` + `archive/` at the root | ✅ | Jovanes Jovanotti | — | [archive](archive/features/wsp-001.md) |
-| `wsp-002` | Workspace honours `--profile` tiers (`JOURNAL.md`, `evaluator-rubric.md` on `full`) | 🟡 | — | `wsp-001` | — |
+| `wsp-002` | Workspace honours `--profile` tiers (`JOURNAL.md`, `evaluator-rubric.md` on `full`) | ✅ | Jovanes Jovanotti | `wsp-001` | [archive](archive/features/wsp-002.md) |
 | `wsp-003` | `create` refuses at a workspace root carrying a foreign harness | 🟡 | — | — | — |
 | `wsp-004` | Workspace-level migrate: fold a foreign root harness in, nothing deleted | 🟡 | — | `wsp-003` | — |
 | `wsp-005` | Polyrepo detected → refuse + print conversion plan; `.git` never touched | 🟡 | — | — | — |

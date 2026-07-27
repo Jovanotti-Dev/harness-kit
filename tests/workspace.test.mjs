@@ -836,3 +836,49 @@ test('wsp-001: hoist path still writes root state, and does not duplicate the ar
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+// ── wsp-002 ──────────────────────────────────────────────────────────────────
+// create computed `tier` from --profile and passed it into generateWorkspace
+// from ws-003 onward, but generateWorkspace never read it — every workspace
+// wrote the standard file set regardless of --profile.
+test('wsp-002: --profile full writes JOURNAL.md and evaluator-rubric.md at the workspace root', async () => {
+  const dir = await tmp();
+  try {
+    const ok = 'node -e "process.exit(0)"';
+    await pkgScripts(path.join(dir, 'svc'), { build: ok }, {});
+    await writeMembers(dir, [{ area: 'svc', path: './svc', stack: 'tbd' }]);
+    initGit(dir);
+    runCreate(dir, ['--profile', 'full']);
+
+    assert.ok(existsSync(path.join(dir, 'JOURNAL.md')), 'full tier must write JOURNAL.md');
+    assert.ok(
+      existsSync(path.join(dir, 'evaluator-rubric.md')),
+      'full tier must write evaluator-rubric.md'
+    );
+    assert.doesNotMatch(
+      await readFile(path.join(dir, 'evaluator-rubric.md'), 'utf8'),
+      /\{\{[A-Za-z0-9_]+\}\}/
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('wsp-002: --profile standard (default) does not write JOURNAL.md or evaluator-rubric.md', async () => {
+  const dir = await tmp();
+  try {
+    const ok = 'node -e "process.exit(0)"';
+    await pkgScripts(path.join(dir, 'svc'), { build: ok }, {});
+    await writeMembers(dir, [{ area: 'svc', path: './svc', stack: 'tbd' }]);
+    initGit(dir);
+    runCreate(dir);
+
+    assert.equal(existsSync(path.join(dir, 'JOURNAL.md')), false);
+    assert.equal(existsSync(path.join(dir, 'evaluator-rubric.md')), false);
+    // The parity fix (wsp-001) must not have regressed alongside this one.
+    const state = await readdir(path.join(dir, 'state'));
+    assert.ok(state.length > 0);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
