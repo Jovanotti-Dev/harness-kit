@@ -79,6 +79,13 @@ one epic with one row per area; it is worked one row at a time and done when all
 This is why each platform is its own row (own Area, `By`, evidence) rather than a checklist
 inside one mega-feature — it preserves per-platform status and reuses the epic→feature hierarchy.
 
+### 2026-07-27 · An audit check must distinguish done from never-started
+A check may not fail a project for having completed and rotated its work. Every check whose
+subject can legitimately be empty must first ask *why* it is empty — a closed epic rotated to
+`archive/` and an epic that was never written both leave `FEATURES.md` with no rows, and only
+one of them is a defect. Scoring them the same punishes the exact behaviour the harness
+teaches. Promoted from `JOURNAL.md` (2026-07-27).
+
 ### 2026-07-24 · Workspace membership is explicit, never guessed
 `WORKSPACE.md` is the sole source of truth for what is a member. `Area` is a user-chosen unique
 label (two members can share a stack), and the detected stack is stored beside it. Nothing is
