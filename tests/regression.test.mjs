@@ -109,7 +109,7 @@ test('bug 3: staleness is judged on commit dates, not mtime', () => {
   );
   const staleCheck = stale
     .find((c) => c.id === 'drift')
-    .checks.find((c) => /fresher than the newest commit/i.test(c.label));
+    .checks.find((c) => /fresher than the newest/i.test(c.label));
   assert.equal(staleCheck.pass, false, 'a state file behind HEAD must be flagged');
 
   const fresh = runChecks(
@@ -121,7 +121,7 @@ test('bug 3: staleness is judged on commit dates, not mtime', () => {
   );
   const freshCheck = fresh
     .find((c) => c.id === 'drift')
-    .checks.find((c) => /fresher than the newest commit/i.test(c.label));
+    .checks.find((c) => /fresher than the newest/i.test(c.label));
   assert.equal(freshCheck.pass, true, 'a state file at or after HEAD must pass');
 });
 
@@ -300,6 +300,105 @@ test('bug 7c: create.mjs writes the section into AGENTS.md only when a tool is d
     assert.match(agents, /## Knowledge graphs/);
     assert.match(agents, /code-review-graph/);
     assert.doesNotMatch(agents, /\{\{KNOWLEDGE_GRAPHS_SECTION\}\}/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+// A project that shipped every epic and rotated it to archive/ has no open epic
+// and no rows — the harness working exactly as designed. Scoring that as two
+// failures punished correct rotation, and cost this repo the headroom over its
+// own CI --min-score gate.
+test('bug 8: a fully-shipped FEATURES.md is not scored as a broken one', () => {
+  const shippedOnly = `# Features
+
+| Epic | Progress | Active / open |
+|------|:--------:|---------------|
+| _No open epics — all shipped (see below)._ | | |
+
+---
+
+## Shipped
+
+Completed epics, rotated to \`archive/epics/\`. One line each.
+
+- **harness-kit v1** (\`hk-001..014\`, closed 2026-07-24) — the v1 generator.
+- **Workspace mode** (\`ws-001..012\`, closed 2026-07-25) — monorepo roots.
+`;
+  const features = runChecks(baseCtx({ files: { features: shippedOnly } }))
+    .find((c) => c.id === 'features');
+
+  const epic = features.checks.find((c) => /at least one epic/i.test(c.label));
+  const rows = features.checks.find((c) => /at least one feature row/i.test(c.label));
+  assert.equal(epic.pass, true, 'rotated epics must satisfy the epic check');
+  assert.equal(rows.pass, true, 'rotated rows must satisfy the row check');
+  assert.match(epic.detail, /2 shipped/);
+});
+
+test('bug 8 GUARD: a FEATURES.md with nothing shipped and nothing open still fails', () => {
+  // The freshly generated file says "_None yet._" under Shipped — prose, not a
+  // bullet. Without that distinction the check would pass for an empty harness.
+  const empty = '# Features\n\n## Shipped\n\nCompleted epics.\n\n_None yet._\n';
+  const features = runChecks(baseCtx({ files: { features: empty } }))
+    .find((c) => c.id === 'features');
+
+  assert.equal(features.checks.find((c) => /at least one epic/i.test(c.label)).pass, false);
+  assert.equal(features.checks.find((c) => /at least one feature row/i.test(c.label)).pass, false);
+});
+
+// ── Bug 9 ─────────────────────────────────────────────────────────────────────
+// The staleness check compared state against the newest commit of ANY kind, so
+// a README typo fix, a CI tweak or a version bump marked every state file
+// stale. A warning that fires on work that never touched the code is noise, and
+// noise is how a real signal gets ignored.
+test('bug 9: a prose-only commit does not mark state files stale', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'hk-bug9-'));
+  const git = (...a) => execFileSync('git', a, { cwd: dir, encoding: 'utf8' });
+  // Commit dates are pinned: `git log --format=%cI` has one-second resolution,
+  // so three commits in the same tick would compare equal and the assertions
+  // would pass or fail on machine speed.
+  const commit = (msg, date) => {
+    git('add', '-A');
+    execFileSync('git', ['commit', '-q', '-m', msg], {
+      cwd: dir,
+      encoding: 'utf8',
+      env: { ...process.env, GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date }
+    });
+  };
+  const staleCheck = () => {
+    const out = execFileSync(
+      'node',
+      [path.join(SCRIPTS, 'audit.mjs'), '--target', dir, '--json'],
+      { encoding: 'utf8' }
+    );
+    return JSON.parse(out)
+      .categories.find((c) => c.id === 'drift')
+      .checks.find((c) => /fresher than the newest/i.test(c.label));
+  };
+
+  try {
+    git('init', '-q');
+    git('config', 'user.name', 'Test User');
+    git('config', 'user.email', 'test@example.com');
+
+    execFileSync('node', [path.join(SCRIPTS, 'create.mjs'), '--target', dir, '--profile', 'standard'], {
+      encoding: 'utf8'
+    });
+    await writeFile(path.join(dir, 'src.js'), 'export const a = 1;\n');
+    commit('feat-001: work plus its state update', '2026-01-01T10:00:00');
+    assert.equal(staleCheck().pass, true, 'state committed alongside the work is fresh');
+
+    // Prose only — no code touched, so nothing could have gone unrecorded.
+    await writeFile(path.join(dir, 'README.md'), '# readme\n\ntypo fixed\n');
+    commit('docs: fix a typo', '2026-01-02T10:00:00');
+    assert.equal(staleCheck().pass, true, 'a README-only commit must not flag state');
+
+    // Real work with no state update — the signal this check exists for.
+    await writeFile(path.join(dir, 'src.js'), 'export const a = 2;\n');
+    commit('feat-002: work with no state update', '2026-01-03T10:00:00');
+    const stale = staleCheck();
+    assert.equal(stale.pass, false, 'unrecorded code work must still be flagged');
+    assert.match(stale.detail, /Stale:/);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

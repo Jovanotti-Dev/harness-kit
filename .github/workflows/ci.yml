@@ -31,5 +31,8 @@ jobs:
       - name: End-to-end selftest (generate a harness, then audit it)
         run: node skills/harness-kit/scripts/selftest.mjs
 
+      # 90 is a floor, not a target: the repo audits at 98, so a single transient
+      # warning (a stale state file mid-session) cannot turn main red on its own.
+      # If this ever drops near the gate, fix the harness — do not lower the gate.
       - name: Audit this repo's own harness
         run: node skills/harness-kit/scripts/audit.mjs --target . --min-score 90

@@ -4,6 +4,7 @@ import {
   splitSections,
   hasSection,
   parseFeatures,
+  shippedEntries,
   findCycles,
   lineCount,
   PLACEHOLDER,
@@ -144,6 +145,13 @@ function featuresCategory({ files, target }) {
 
   const epicsMissingMeta = model.epics.filter((e) => !e.startedBy || !e.started);
 
+  // A project that finished everything and rotated it away has no open epic and
+  // no rows — which is the harness working as designed, not a broken
+  // FEATURES.md. The Shipped list is the evidence that distinguishes the two;
+  // without it, correct rotation would be scored as a failure.
+  const shipped = features ? shippedEntries(features) : [];
+  const allShipped = shipped.length > 0;
+
   // A ✅ feature whose detail section is still inline was never rotated. Left
   // unchecked this is exactly how FEATURES.md grows without bound.
   const detailIds = new Set(model.details.map((d) => d.id));
@@ -153,11 +161,19 @@ function featuresCategory({ files, target }) {
     id: 'features',
     name: 'FEATURES.md & dependency graph',
     checks: [
-      check(model.epics.length > 0, 'At least one epic',
-        model.epics.length ? `${model.epics.length} epic(s).` : 'No "## Epic ·" heading found.',
+      check(model.epics.length > 0 || allShipped, 'At least one epic',
+        model.epics.length
+          ? `${model.epics.length} open epic(s).`
+          : allShipped
+            ? `No open epics — ${shipped.length} shipped and rotated to archive/epics/.`
+            : 'No "## Epic ·" heading found.',
         'Group features under "## Epic · <name>" with a PRD link and ID prefix.'),
-      check(rows.length > 0, 'At least one feature row',
-        rows.length ? `${rows.length} feature(s).` : 'No rows parsed.',
+      check(rows.length > 0 || allShipped, 'At least one feature row',
+        rows.length
+          ? `${rows.length} feature(s).`
+          : allShipped
+            ? 'No open rows — every feature closed with its epic.'
+            : 'No rows parsed.',
         'Add rows to the epic summary table.'),
       check(badStatus.length === 0, 'Every feature has a valid status symbol',
         badStatus.length === 0
@@ -200,7 +216,7 @@ function featuresCategory({ files, target }) {
 }
 
 // ---------- Drift & quality ----------
-function driftCategory({ files, target, featuresModel, newestCommit, stateCommitDates }) {
+function driftCategory({ files, target, featuresModel, isGitRepo, newestCommit, stateCommitDates }) {
   const { agents, constitution, features, stateFiles } = files;
   const all = [agents, constitution, features, ...stateFiles.map((s) => s.content)]
     .filter(Boolean)
@@ -219,6 +235,9 @@ function driftCategory({ files, target, featuresModel, newestCommit, stateCommit
   // Compare each state file's last COMMIT date against the newest commit.
   // Filesystem mtime is useless here: `git checkout` rewrites working-tree
   // files, so switching branches would silently "fix" a stale state file.
+  // `newestCommit` excludes prose and bookkeeping paths (see audit.mjs), so a
+  // README fix cannot masquerade as unrecorded work.
+  const inGit = isGitRepo ?? Boolean(newestCommit);
   const stale = newestCommit
     ? stateFiles.filter((s) => {
         const committed = stateCommitDates?.[s.rel];
@@ -241,12 +260,14 @@ function driftCategory({ files, target, featuresModel, newestCommit, stateCommit
       check(badActive.length === 0, 'Active features exist in FEATURES.md',
         badActive.length === 0 ? 'Active features resolve.' : `Unknown: ${badActive.join(', ')}.`,
         'The state file points at a feature ID that is not in FEATURES.md.'),
-      check(stale.length === 0, 'State files are fresher than the newest commit',
-        !newestCommit
+      check(stale.length === 0, 'State files are fresher than the newest work commit',
+        !inGit
           ? 'Not a git repo — skipped.'
-          : stale.length === 0
-            ? 'State files updated at or after the last commit.'
-            : `Stale: ${stale.map((s) => s.name).join(', ')}.`,
+          : !newestCommit
+            ? 'No work commits yet — only prose and bookkeeping.'
+            : stale.length === 0
+              ? 'State files updated at or after the last work commit.'
+              : `Stale: ${stale.map((s) => s.name).join(', ')}.`,
         'Work happened without updating state — update it before ending the session.',
         'warn')
     ]

@@ -133,6 +133,21 @@ export function parseFeatures(md) {
   return { epics, details, allRows: epics.flatMap((e) => e.rows) };
 }
 
+// Entries under "## Shipped" — the closed epics that rotation moved to
+// archive/epics/. A freshly generated FEATURES.md carries the literal
+// "_None yet._" instead of list items, so counting real bullets is what
+// separates "everything shipped" from "nothing started".
+export function shippedEntries(md) {
+  const section = splitSections(md).find(
+    (s) => s.level === 2 && /^Shipped\b/i.test(s.heading)
+  );
+  if (!section) return [];
+  return section.body
+    .split(/\r?\n/)
+    .filter((line) => /^\s*[-*]\s+\S/.test(line))
+    .map((line) => line.replace(/^\s*[-*]\s+/, '').trim());
+}
+
 // Returns the list of dependency cycles, each as the ids involved.
 export function findCycles(rows) {
   const byId = new Map(rows.map((r) => [r.id, r]));
