@@ -403,3 +403,61 @@ test('bug 9: a prose-only commit does not mark state files stale', async () => {
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+// ── Bug 10 ────────────────────────────────────────────────────────────────────
+// The git rules only described work that has a feature ID, so corrective work
+// outside an epic had no legal branch name or commit prefix — the PR that fixed
+// three audit defects could not follow the rules it shipped under. Every
+// generated harness inherited the same gap.
+test('bug 10: a generated CONSTITUTION.md gives maintenance work a lane', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'hk-bug10-'));
+  try {
+    execFileSync('git', ['init', '-q'], { cwd: dir });
+    execFileSync('git', ['config', 'user.name', 'Test User'], { cwd: dir });
+
+    execFileSync('node', [path.join(SCRIPTS, 'create.mjs'), '--target', dir, '--profile', 'standard'], {
+      encoding: 'utf8'
+    });
+
+    const c = await readFile(path.join(dir, 'CONSTITUTION.md'), 'utf8');
+    assert.match(c, /chore\//, 'must name the maintenance branch lane');
+    assert.match(c, /`chore:`/, 'must name the maintenance commit prefix');
+    assert.match(
+      c,
+      /not an escape from tracking/i,
+      'the lane must be bounded, or it becomes a way to ship untracked features'
+    );
+    // The feature-ID rule must survive, conditioned rather than deleted.
+    assert.match(c, /prefixed with the feature ID/);
+    assert.match(c, /git log --grep/);
+    assert.doesNotMatch(c, /\{\{[A-Z_]+\}\}/, 'no placeholder may survive the edit');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('bug 10: a generated workspace root CONSTITUTION.md carries the same lane', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'hk-bug10ws-'));
+  try {
+    execFileSync('git', ['init', '-q'], { cwd: dir });
+    execFileSync('git', ['config', 'user.name', 'Test User'], { cwd: dir });
+    await mkdir(path.join(dir, 'api'), { recursive: true });
+    await writeFile(path.join(dir, 'api', 'go.mod'), 'module fixture\n');
+    await writeFile(
+      path.join(dir, 'WORKSPACE.md'),
+      '# Workspace\n\n| Area | Path | Stack |\n|------|------|-------|\n| api | ./api | — |\n'
+    );
+
+    execFileSync('node', [path.join(SCRIPTS, 'create.mjs'), '--target', dir, '--profile', 'standard'], {
+      encoding: 'utf8'
+    });
+
+    const c = await readFile(path.join(dir, 'CONSTITUTION.md'), 'utf8');
+    assert.match(c, /chore\//);
+    assert.match(c, /`chore:`/);
+    assert.match(c, /not an escape from tracking/i);
+    assert.doesNotMatch(c, /\{\{[A-Z_]+\}\}/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

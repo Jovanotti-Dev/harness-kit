@@ -25,10 +25,16 @@
 
 ## Git
 
-- Base branch for PRs: `{{BASE_BRANCH}}`. Feature branches: `{{BRANCH_PATTERN}}`.
-- **Commit messages are prefixed with the feature ID:** `{{FEATURE_ID_EXAMPLE}}: <summary>`.
-  This lets `git log --grep="<id>"` corroborate the `By` column in `FEATURES.md` — markdown
-  gives attribution at a glance, git proves it.
+- Base branch for PRs: `{{BASE_BRANCH}}`. One unit of work per branch.
+  - Feature work: `{{BRANCH_PATTERN}}`.
+  - Maintenance that belongs to no feature row: `<type>/<topic>` — `fix/`, `docs/`, `chore/`.
+- **Commit messages are prefixed with the feature ID** when the work belongs to a feature row:
+  `{{FEATURE_ID_EXAMPLE}}: <summary>`. This lets `git log --grep="<id>"` corroborate the `By`
+  column in `FEATURES.md` — markdown gives attribution at a glance, git proves it.
+- **Maintenance commits use a type prefix instead:** `fix:`, `docs:`, `chore:`. There is no
+  `By` column to corroborate, so traceability comes from the PR. This is for work too small to
+  track, not an escape from tracking: if it grows past one session, or changes behaviour
+  someone else depends on, stop and give it a feature row.
 - **State is one file per person:** `state/<git config user.name>.md`. You write only your own
   file; nobody else ever touches it. Because git only conflicts when two branches change the
   *same lines of the same file*, this makes **merge, rebase and cherry-pick conflict-free by
