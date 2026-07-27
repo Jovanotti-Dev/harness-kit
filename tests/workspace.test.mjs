@@ -751,3 +751,88 @@ test('renderMembers ignores the template placeholder when read back', async () =
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+// ── wsp-001 ──────────────────────────────────────────────────────────────────
+// A workspace root must generate what a single repo generates. The root
+// AGENTS.md's own startup step told the agent to read state/<name>.md, and
+// CONSTITUTION.md mandated it, but nothing wrote it — every workspace shipped
+// at 97/100 with its own startup step pointing at a file that never existed.
+test('wsp-001: workspace generates state/<name>.md and archive/ at the root', async () => {
+  const dir = await tmp();
+  try {
+    const ok = 'node -e "process.exit(0)"';
+    await pkgScripts(path.join(dir, 'svc'), { build: ok }, {});
+    await writeMembers(dir, [{ area: 'svc', path: './svc', stack: 'tbd' }]);
+    initGit(dir);
+    runCreate(dir);
+
+    const state = await readdir(path.join(dir, 'state'));
+    assert.ok(state.length > 0, 'no state/<name>.md was generated at the workspace root');
+    assert.doesNotMatch(
+      await readFile(path.join(dir, 'state', state[0]), 'utf8'),
+      /\{\{[A-Za-z0-9_]+\}\}/,
+      'generated state file must not carry a leftover placeholder'
+    );
+
+    assert.ok(existsSync(path.join(dir, 'archive', 'features', '.gitkeep')));
+    assert.ok(existsSync(path.join(dir, 'archive', 'sessions', '.gitkeep')));
+
+    // The AGENTS.md that tells the agent to read this file must not ship
+    // pointing at nothing.
+    const agents = await readFile(path.join(dir, 'AGENTS.md'), 'utf8');
+    assert.match(agents, /state\//i, 'AGENTS.md must still direct the agent to state/');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('wsp-001 DONE-WHEN: a generated workspace scores 100 on its own audit', async () => {
+  const dir = await tmp();
+  try {
+    const ok = 'node -e "process.exit(0)"';
+    await pkgScripts(path.join(dir, 'svc'), { build: ok }, {});
+    await writeMembers(dir, [{ area: 'svc', path: './svc', stack: 'tbd' }]);
+    initGit(dir);
+    runCreate(dir);
+
+    const out = execFileSync(
+      'node',
+      [path.join(SCRIPTS, 'audit.mjs'), '--target', dir, '--json'],
+      { encoding: 'utf8' }
+    );
+    const report = JSON.parse(out);
+    const failures = report.categories
+      .flatMap((c) => c.checks)
+      .filter((c) => !c.pass)
+      .map((c) => c.label);
+    assert.deepEqual(failures, [], `expected 100/100, got failing checks: ${failures.join(', ')}`);
+    assert.equal(report.overall, 100);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('wsp-001: hoist path still writes root state, and does not duplicate the archived member state', async () => {
+  const dir = await tmp();
+  try {
+    const memberDir = path.join(dir, 'api');
+    await pkgScripts(memberDir, { build: 'node -e "process.exit(0)"' }, {});
+    initGit(memberDir);
+    runCreate(memberDir, ['--profile', 'standard']);
+    execFileSync('git', ['add', '-A'], { cwd: memberDir });
+    execFileSync('git', ['commit', '-q', '-m', 'seed member harness'], { cwd: memberDir });
+
+    await writeMembers(dir, [{ area: 'api', path: './api', stack: 'tbd' }]);
+    initGit(dir);
+    runCreate(dir);
+
+    const state = await readdir(path.join(dir, 'state'));
+    assert.ok(state.length > 0, 'hoist path must still produce a root state file');
+
+    // The member's old state was hoisted (archived), not left behind to compete.
+    assert.equal(existsSync(path.join(dir, 'api', 'state')), false);
+    assert.ok(existsSync(path.join(dir, 'archive', 'legacy', 'api', 'state')));
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
