@@ -7,13 +7,15 @@
 
 ## Now
 
-- **Objective:** Implement `wsp-003` — `create` refuses at a workspace root carrying a foreign harness.
-- **Active feature:** `wsp-003` — ✅ **done**, closed and rotated.
-- **Status:** `wsp-003` implemented on `feature/wsp-003-workspace-foreign-harness-refuse`.
-  `detectLegacy` is target-agnostic, so the identical single-repo refusal now runs inside
-  `generateWorkspace` right after the `isWorkspace` guard. No `--migrate` escape yet — that path
-  doesn't exist until `wsp-004`, so the message points at resolving by hand.
-- **Last verify:** `./verify.sh test` → 68/68 (was 66), `HARNESS_VERIFY: PASS` (2026-07-27).
+- **Objective:** Implement `wsp-004` — workspace-level migrate, folding a foreign root harness in.
+- **Active feature:** `wsp-004` — ✅ **done**, closed and rotated.
+- **Status:** `wsp-004` implemented on `feature/wsp-004-workspace-migrate`. `--migrate` now
+  threads through to `generateWorkspace` and mirrors single-repo `--migrate` exactly — bypasses
+  the `wsp-003` refusal, writes the skeleton, leaves existing files (`CLAUDE.md`) untouched,
+  still surfaces the legacy report and the trailing `claudeConflict` warning. Deliberately does
+  NOT classify or move old content — "the script detects; you migrate". Added a **Root migrate**
+  section to `workspace-migrate.md`, distinct from hoist.
+- **Last verify:** `./verify.sh test` → 70/70 (was 68), `HARNESS_VERIFY: PASS` (2026-07-27).
   Self-audit: **100/100**.
 
 ### Shakedown findings
@@ -41,16 +43,16 @@ member) broke nothing observed on these paths, despite being the deferred config
 
 ## Next step
 
-Epic **Workspace parity & repo shapes** (`wsp-001..009`) is `3/9` — `wsp-001`, `wsp-002` and
-`wsp-003` shipped and merged (#11, #12, and this one).
+Epic **Workspace parity & repo shapes** (`wsp-001..009`) is `4/9` — `wsp-001` through `wsp-004`
+shipped and merged (#11, #12, #13, and this one).
 
-`wsp-003` closed — the exact bug reproduced live during the shakedown. 2 new tests, confirmed
-non-decorative (stashed the source: the refusal test failed, the clean-workspace regression
-guard still passed, correctly).
+`wsp-004` closed — the repair half of the `wsp-003` refuse/repair pair. 2 new tests, confirmed
+non-decorative (stashed both source files: without them `--migrate` was a no-op and the old
+code refused anyway; the no-`--migrate` regression guard still passed).
 
-Next: `wsp-004` (workspace-level migrate) depends on `wsp-003` and is now unblocked — the repair
-half of the refuse/repair pair, folding a foreign root harness in rather than leaving the user
-stuck once `wsp-003` refuses.
+Next: `wsp-005` (polyrepo detected → refuse + print conversion plan) — no dependency, ready to
+start. The doc and the `.git` boundary are already written (`polyrepo-convert.md`,
+`CONSTITUTION.md`); this row is wiring the detection into `generateWorkspace` itself.
 
 Twyne remains converted and pushed (unrelated prior work): 4 repos → 1, 230 commits, CI green.
 
@@ -78,10 +80,11 @@ the user's choice).
 
 | File | Change | Why |
 |------|--------|-----|
-| `scripts/lib/legacy.mjs` | (no change — reused unmodified; confirmed target-agnostic) | wsp-003 |
-| `scripts/lib/workspace-generate.mjs` | Import `detectLegacy`/`formatLegacyReport`; refuse-and-report block after the `isWorkspace` guard | wsp-003 |
-| `tests/workspace.test.mjs` | +2 tests: refuses with the exact shakedown repro, clean-root regression guard | wsp-003 |
-| `FEATURES.md` | `wsp-003` → ✅, progress 3/9, evidence link | Close the row |
-| `archive/features/wsp-003.md` | New — full detail, evidence table | Rotation on close |
+| `scripts/lib/workspace-generate.mjs` | Restructured the `wsp-003` refusal to accept `migrate`; hoisted `legacy` to function scope; trailing `claudeConflict` warning | wsp-004 |
+| `scripts/create.mjs` | Thread `--migrate` into `generateWorkspace`; help text note | wsp-004 |
+| `references/workspace-migrate.md` | New **Root migrate** section, distinguished from hoist, with its own mapping table | wsp-004 |
+| `tests/workspace.test.mjs` | +2 tests: `--migrate` bypasses + writes skeleton + leaves `CLAUDE.md` untouched; no-`--migrate` regression guard | wsp-004 |
+| `FEATURES.md` | `wsp-004` → ✅, progress 4/9, evidence link | Close the row |
+| `archive/features/wsp-004.md` | New — full detail, evidence table | Rotation on close |
 
 _Ground truth: run `git diff --stat` to confirm this table matches reality._

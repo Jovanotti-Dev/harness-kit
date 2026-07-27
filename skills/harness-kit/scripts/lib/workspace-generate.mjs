@@ -285,7 +285,13 @@ async function writeConstitutions(root, members, profiles, opts) {
 // FEATURES.md, member breadcrumbs and the orchestrating verify.sh are later
 // features (ws-005..ws-008).
 export async function generateWorkspace(root, opts = {}) {
-  const { dryRun = false, force = false, addMember: toAdd = null, tier = 'standard' } = opts;
+  const {
+    dryRun = false,
+    force = false,
+    addMember: toAdd = null,
+    tier = 'standard',
+    migrate = false
+  } = opts;
 
   // Add-a-member-later (ws-010): append the row before anything else, so the
   // rest of generation (detection, per-member files, the verify orchestrator)
@@ -315,18 +321,28 @@ export async function generateWorkspace(root, opts = {}) {
   // in charge of every member. detectLegacy is target-agnostic (it only reads
   // files under `target`), so the identical check applies here unchanged.
   //
-  // No --migrate escape yet: workspace-level migrate (wsp-004) does not exist,
-  // so there is nowhere safe to send the user but to resolve it by hand first.
+  // wsp-004: --migrate bypasses the refusal, mirroring single-repo create
+  // exactly — it does NOT classify or move the old content itself ("the
+  // script detects; you migrate", references/migrate.md). It just unblocks
+  // generation so the skeleton exists to migrate content into, still reports
+  // what legacy files were found, and still leaves CLAUDE.md untouched if one
+  // already exists (writeOut skips existing files unless --force).
+  let legacy = { hasLegacy: false, found: [], claudeConflict: null };
   if (!dryRun) {
-    const legacy = await detectLegacy(root);
-    if (legacy.hasLegacy) {
+    legacy = await detectLegacy(root);
+    if (legacy.hasLegacy && !migrate) {
       console.log(`harness-kit — refusing to write in ${root}\n`);
       console.log(formatLegacyReport(legacy));
       console.log('  This workspace root already has a harness. Writing new files alongside it');
       console.log('  would leave two competing sets of instructions governing every member.\n');
-      console.log('  Workspace-level migrate is not available yet (wsp-004). Resolve the');
-      console.log('  conflict by hand — or remove the old harness — then re-run.');
+      console.log('  Migrate instead — see references/workspace-migrate.md for the root harness');
+      console.log('  case (references/migrate.md maps old files to new homes). Nothing is');
+      console.log('  deleted; content moves to the file that now owns it.\n');
+      console.log('  To generate the skeleton anyway once you have read that: --migrate');
       return { mode: 'workspace', ok: false, members: [], results: [] };
+    }
+    if (legacy.hasLegacy) {
+      console.log(formatLegacyReport(legacy));
     }
   }
 
@@ -367,6 +383,17 @@ export async function generateWorkspace(root, opts = {}) {
   const missing = members.filter((m) => m.missing);
   if (missing.length) {
     console.log(`\n  ! ${missing.length} member path(s) not found — fix ${WORKSPACE_FILE} or create the dir(s).`);
+  }
+
+  // wsp-004: mirrors single-repo create's trailing warning. --migrate leaves
+  // an existing CLAUDE.md untouched, so until it is rewritten by hand the
+  // workspace harness is unreachable — an agent loading CLAUDE.md still
+  // follows the old instructions.
+  if (legacy.claudeConflict) {
+    console.log('\n  ! CLAUDE.md was left untouched and does NOT point to AGENTS.md.');
+    console.log('    Until you fix that, an agent loading CLAUDE.md follows the OLD harness');
+    console.log('    and never reads what was just generated. Audit will report CRITICAL.');
+    console.log('    See references/workspace-migrate.md (Root migrate).');
   }
 
   console.log('\n  Run ./verify.sh (all members) or ./verify.sh <area> to verify one member.');

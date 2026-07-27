@@ -46,7 +46,9 @@ If the repo already has a harness, create refuses to write and prints a
 migration plan instead. Use --migrate to acknowledge and generate anyway.
 
 Workspace mode: if the target has a WORKSPACE.md (or --workspace is given),
-create treats it as a monorepo root and detects each member's stack.`);
+create treats it as a monorepo root and detects each member's stack.
+--migrate applies there too, if the root itself already carries a harness
+(see references/workspace-migrate.md).`);
   process.exit(0);
 }
 
@@ -65,7 +67,8 @@ if (isWorkspace(target) || args.workspace || args['add-member']) {
     typeof args['add-member'] === 'string'
       ? { area: args['add-member'], path: args.at || `./${args['add-member']}` }
       : null;
-  const res = await generateWorkspace(target, { tier, dryRun, force, addMember });
+  const migrate = Boolean(args.migrate);
+  const res = await generateWorkspace(target, { tier, dryRun, force, addMember, migrate });
   process.exit(res.ok ? 0 : 2);
 }
 
