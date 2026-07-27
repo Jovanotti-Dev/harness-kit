@@ -7,13 +7,14 @@
 
 ## Now
 
-- **Objective:** Implement `wsp-006` — evidence-link check accepts URLs.
-- **Active feature:** `wsp-006` — ✅ **done**, closed and rotated.
-- **Status:** `wsp-006` implemented on `feature/wsp-006-evidence-link-urls`. One guard in
-  `checks.mjs`: a URL is accepted on sight before the `existsSync` filesystem check runs, since
-  `audit.mjs` is static-only (no network) and a URL was always failing as an impossible
-  relative path. Smallest of the epic's rows — no workspace-mode interaction, just `checks.mjs`.
-- **Last verify:** `./verify.sh test` → 74/74 (was 72), `HARNESS_VERIFY: PASS` (2026-07-27).
+- **Objective:** Implement `wsp-007` — root `verify.sh` stops clobbering user edits.
+- **Active feature:** `wsp-007` — ✅ **done**, closed and rotated.
+- **Status:** `wsp-007` implemented on `feature/wsp-007-verify-no-clobber`. The root
+  `verify.sh` write was hardcoded `force: true` — deliberate, to make `--add-member` (`ws-010`)
+  regenerate the orchestrator, but it clobbered hand-edits on every plain re-run too. Captured
+  whether `--add-member` actually changed membership this run (`memberAdded`) and force only on
+  that or explicit `--force`. Confirmed `ws-010`'s two existing tests still pass unaffected.
+- **Last verify:** `./verify.sh test` → 76/76 (was 74), `HARNESS_VERIFY: PASS` (2026-07-27).
   Self-audit: **100/100**.
 
 ### Shakedown findings
@@ -41,16 +42,14 @@ member) broke nothing observed on these paths, despite being the deferred config
 
 ## Next step
 
-Epic **Workspace parity & repo shapes** (`wsp-001..009`) is `6/9` — `wsp-001` through `wsp-006`
-shipped and merged (#11-#15, and this one).
+Epic **Workspace parity & repo shapes** (`wsp-001..009`) is `7/9` — `wsp-001` through `wsp-007`
+shipped and merged (#11-#16, and this one).
 
-`wsp-006` closed — the exact link from the real Twyne shakedown
-(`https://github.com/Jovanotti-Dev/twyne-ios/pull/1`) now passes. 2 new tests, confirmed
-non-decorative (stashed the source: the URL test failed, the broken-relative-link guard still
-passed).
+`wsp-007` closed. 2 new tests, confirmed non-decorative (stashed the source: the plain-re-run
+test failed, the `--force` test passed either way since that path was never broken).
 
-Next: `wsp-007` (root `verify.sh` stops clobbering user edits on re-run) — no dependency, ready
-to start.
+Next: `wsp-008` (workspace verify aggregate names the failing area(s)) — no dependency, ready to
+start. Last row before `wsp-009` (interactive adopt), which is the largest remaining piece.
 
 Twyne remains converted and pushed (unrelated prior work): 4 repos → 1, 230 commits, CI green.
 
@@ -78,9 +77,9 @@ the user's choice).
 
 | File | Change | Why |
 |------|--------|-----|
-| `scripts/lib/checks.mjs` | Skip `existsSync` for a URL evidence link | wsp-006 |
-| `tests/regression.test.mjs` | Bug 11 + GUARD: URL passes, broken relative path still fails | wsp-006 |
-| `FEATURES.md` | `wsp-006` → ✅, progress 6/9, evidence link | Close the row |
-| `archive/features/wsp-006.md` | New — full detail, evidence table | Rotation on close |
+| `scripts/lib/workspace-generate.mjs` | Capture `memberAdded`; force the root `verify.sh` only on that or explicit `--force` | wsp-007 |
+| `tests/workspace.test.mjs` | +2 tests: hand-edit survives a plain re-run, `--force` still overrides | wsp-007 |
+| `FEATURES.md` | `wsp-007` → ✅, progress 7/9, evidence link | Close the row |
+| `archive/features/wsp-007.md` | New — full detail, evidence table | Rotation on close |
 
 _Ground truth: run `git diff --stat` to confirm this table matches reality._

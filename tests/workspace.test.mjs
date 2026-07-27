@@ -1083,3 +1083,55 @@ test('wsp-005 REGRESSION GUARD: a real monorepo (no member .git) still generates
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+// ── wsp-007 ──────────────────────────────────────────────────────────────────
+// The root verify.sh was force-rewritten on every generateWorkspace call,
+// regardless of --force, so a hand-edit (an extra check, a comment) was
+// silently discarded on the next plain re-run. --add-member (ws-010) still
+// needs the file to regenerate, since a new member's AREAS/PATHS entry would
+// otherwise be missing — that must not regress.
+test('wsp-007: a hand-edited root verify.sh survives a plain re-run', async () => {
+  const dir = await tmp();
+  try {
+    const ok = 'node -e "process.exit(0)"';
+    await pkgScripts(path.join(dir, 'api'), { build: ok }, {});
+    await writeMembers(dir, [{ area: 'api', path: './api', stack: 'tbd' }]);
+    initGit(dir);
+    runCreate(dir);
+
+    await writeFile(
+      path.join(dir, 'verify.sh'),
+      (await readFile(path.join(dir, 'verify.sh'), 'utf8')) + '\n# hand-edit: notify slack\n'
+    );
+
+    // A plain re-run — no --add-member, no --force — must not touch it.
+    runCreate(dir);
+
+    const after = await readFile(path.join(dir, 'verify.sh'), 'utf8');
+    assert.match(after, /# hand-edit: notify slack/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('wsp-007: --force still regenerates the root verify.sh over a hand-edit', async () => {
+  const dir = await tmp();
+  try {
+    const ok = 'node -e "process.exit(0)"';
+    await pkgScripts(path.join(dir, 'api'), { build: ok }, {});
+    await writeMembers(dir, [{ area: 'api', path: './api', stack: 'tbd' }]);
+    initGit(dir);
+    runCreate(dir);
+
+    await writeFile(
+      path.join(dir, 'verify.sh'),
+      (await readFile(path.join(dir, 'verify.sh'), 'utf8')) + '\n# hand-edit: notify slack\n'
+    );
+    runCreate(dir, ['--force']);
+
+    const after = await readFile(path.join(dir, 'verify.sh'), 'utf8');
+    assert.doesNotMatch(after, /# hand-edit: notify slack/, '--force must still override');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
