@@ -204,3 +204,104 @@ All twelve rows ✅ with recorded evidence; `./verify.sh test` green; the regres
 proves single-repo output is byte-for-byte unchanged; a real 3-member monorepo generates,
 verifies (`./verify.sh` aggregate PASS), and hoist-migrates a pre-existing member harness
 without data loss.
+
+---
+
+## 10. Repo shapes and the migration matrix (added 2026-07-27)
+
+Settled after the first real-world shakedown, which ran against a genuine three-project
+workspace. §2 deferred polyrepo without saying what harness-kit should *do* when it meets one.
+This section closes that, and fixes the shapes harness-kit must recognise.
+
+### 10.1 The four shapes
+
+| Shape | Git layout | Status |
+|---|---|---|
+| **Single repo** | one `.git`, one project | supported |
+| **Monorepo** | one `.git` at the root, N projects inside it | supported |
+| **Polyrepo** | a `.git` per project, plus a root that tracks only the harness | **detect → refuse → print a conversion plan** |
+| **Foreign harness** | any of the above, already carrying a different harness | migrate (single) / hoist (member) / **refuse at a workspace root** |
+
+Polyrepo is not a wrong way to organise code — it is simply outside what this harness can make
+guarantees about, for the reason in §10.3.
+
+### 10.2 Parity: a workspace generates what a single repo generates
+
+A workspace root is a project like any other. At the same `--profile` tier it MUST produce the
+same file set as a single repo, plus the workspace-only files:
+
+| Always | Workspace adds |
+|---|---|
+| `CLAUDE.md`, `AGENTS.md`, `CONSTITUTION.md`, `FEATURES.md` | `WORKSPACE.md` (member registry) |
+| `state/<name>.md` — **at the root, one per person, never per member** | `constitutions/<area>.md` per member |
+| `archive/` — exactly one, at the root | member `CLAUDE.md` breadcrumbs |
+| `verify.sh` | member `verify.sh` + a root orchestrator |
+| `JOURNAL.md`, `evaluator-rubric.md` on `full` | |
+
+Anything the root `AGENTS.md` or `CONSTITUTION.md` tells an agent to read, generation must
+have created. A startup step pointing at a file that was never written is a broken harness,
+however well it scores elsewhere.
+
+### 10.3 Why polyrepo cannot simply be allowed through
+
+The harness relies on one git identity and one history at the root. When each member carries
+its own `.git` and the root tracks only the harness files, the root's history sees no member
+work — so the git-backed checks do not fail, they **silently pass**:
+
+- drift/staleness compares against a root history in which member work never appears;
+- `git log --grep="<id>"` cannot corroborate the `By` column for work committed in a member;
+- knowledge-graph hook detection reads the root `.git/hooks` only.
+
+Silent passes are worse than errors: the audit reports a healthy score for a harness whose
+evidence checks are inert. Hence detect-and-refuse rather than best-effort.
+
+### 10.4 Policy: convert to a monorepo, and never do it automatically
+
+The intended end state is a monorepo. `create` MUST NOT perform the conversion itself.
+
+When it finds member `.git` directories at a workspace root it prints a plan and stops,
+following the same shape as the existing refuse-alongside-a-legacy-harness path:
+
+1. name every member that carries its own `.git`, and its remote;
+2. state plainly that converting is **irreversible for the member's independent remote** —
+   after conversion the member no longer pushes anywhere on its own;
+3. give the exact commands, for the user to run and review;
+4. offer the alternative: keep polyrepo, and understand that drift and attribution checks are
+   inert — they must not be cited as evidence.
+
+**Never delete or rewrite a `.git` directory.** Not with `--force`, not on request. It is the
+only artefact in a repo that cannot be reconstructed from the working tree, and a wrong guess
+destroys history that may exist nowhere else. harness-kit guides the conversion; the user
+performs it.
+
+The plan itself lives in
+[`references/polyrepo-convert.md`](../skills/harness-kit/references/polyrepo-convert.md) —
+the decision test (do the members release independently?), why submodules are not a third
+answer, three conversion routes with `git subtree` as the default because it preserves commit
+SHAs and so keeps `git subtree push` a fast-forward, and the costs to state before starting.
+
+### 10.5 A workspace root with a foreign harness must refuse
+
+`create` already refuses to write beside an existing harness in a single repo — two competing
+instruction files means the agent follows the old one and never sees the new harness. That
+guard MUST apply at a workspace root too, for the same reason and with the same force.
+
+Reaching a workspace via `WORKSPACE.md` does not make the older instructions disappear; if
+anything it is worse, because the stale file governs several projects at once.
+
+Refusing is only half the answer. The other half is a **workspace-level migrate**: fold the old
+root harness's content into the harness-kit root — rules into `CONSTITUTION.md`, scope into
+`FEATURES.md`, working notes into `state/<name>.md` — and move the displaced files to
+`archive/legacy/root/`. Same rule as single-repo migrate: **never delete, move content to the
+file that now owns it.** This is distinct from hoist, which promotes a harness found *inside a
+member*; here the foreign harness is already at the root and needs converting in place.
+
+The two ship in order — refusal first, migration second — because refusing is safe on its own
+and migrating is not safe without it.
+
+### 10.6 One epic, several projects
+
+Unchanged, and worth restating because it is the reason workspace mode exists: a single story
+that needs backend *and* mobile work is **one epic with one `FEATURES.md` row per Area**. It is
+worked one row at a time and is done when all its rows are ✅. Per-row `Area`, `By` and
+evidence keep each project's status legible without splitting the story.

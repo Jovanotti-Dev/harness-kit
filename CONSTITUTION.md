@@ -86,6 +86,35 @@ one epic with one row per area; it is worked one row at a time and done when all
 This is why each platform is its own row (own Area, `By`, evidence) rather than a checklist
 inside one mega-feature — it preserves per-platform status and reuses the epic→feature hierarchy.
 
+### 2026-07-27 · A workspace generates what a single repo generates
+At the same `--profile` tier, a workspace root produces the same file set as a single repo —
+including `state/<name>.md` and `archive/` at the root, and `JOURNAL.md` + `evaluator-rubric.md`
+on `full` — plus the workspace-only files (`WORKSPACE.md`, `constitutions/<area>.md`, member
+breadcrumbs, member `verify.sh`, root orchestrator). **Anything the generated `AGENTS.md` or
+`CONSTITUTION.md` tells an agent to read, generation must have written.** A startup step
+pointing at a file that was never created is a broken harness whatever else it scores. Found by
+the 2026-07-27 shakedown: workspace mode wrote no `state/` while its own `AGENTS.md` step 2
+told the agent to read one. See `docs/workspace.md` §10.2.
+
+### 2026-07-27 · Polyrepo is refused with a plan, and `.git` is never touched
+A workspace root whose members each carry their own `.git` is detected, **refused, and given a
+written conversion plan** — never generated into silently and never converted automatically.
+The intended end state is a monorepo. The refusal is not pedantry: with member histories
+invisible to the root, the git-backed checks (drift, `git log --grep` attribution, hook
+detection) do not fail, they *silently pass*, so the audit reports health for a harness whose
+evidence checks are inert. A silent pass is worse than an error.
+**No mode, flag, or request may delete or rewrite a `.git` directory.** It is the only artefact
+that cannot be rebuilt from the working tree. harness-kit prints the commands; the user runs
+them, having been told that conversion is irreversible for the member's independent remote.
+See `docs/workspace.md` §10.3–10.4.
+
+### 2026-07-27 · The refuse-alongside-a-foreign-harness guard applies at a workspace root
+`create` refuses to write beside an existing foreign harness in a single repo; the same guard
+binds at a workspace root, with the same force. Reaching a workspace through `WORKSPACE.md`
+does not make older instructions disappear — it makes them worse, because one stale file now
+governs several projects. Found by the same shakedown: workspace generation wrote a full
+harness beside a `CLAUDE.md` reading "always read progress.md first, never run tests".
+
 ### 2026-07-27 · Maintenance work has a lane, and it is narrow
 The git rules covered only work with a feature ID, so corrective work outside an epic had no
 legal branch name or commit prefix — PR #6 fixed three audit defects and could not follow the
