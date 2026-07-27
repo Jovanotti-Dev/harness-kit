@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import { parseTables } from './parse.mjs';
 import { loadProfiles, detectStack } from './detect.mjs';
+import { runProbe } from './probe.mjs';
 
 // A workspace is a monorepo root whose members are declared in WORKSPACE.md.
 // The file's presence is what flips harness-kit into workspace mode — no
@@ -130,6 +131,28 @@ export async function refreshStacks(root, profiles) {
     detected.map(({ area, path: p, stack }) => ({ area, path: p, stack }))
   );
   return detected;
+}
+
+// wsp-005: a member with its own .git means the root's history can never see
+// that member's commits — the harness's git-backed checks (drift, `git log
+// --grep` attribution, knowledge-graph hook detection) then silently pass
+// instead of failing, so the audit reports health for evidence that is inert
+// (docs/workspace.md §10.3). Detect only — this never touches, deletes, or
+// rewrites any `.git`; it exists to decide whether to refuse, not to act.
+//
+// `.git` is a directory for a normal repo and a file (a gitlink, `gitdir:
+// <path>`) for a submodule — both count, so existsSync alone is enough; we
+// don't need to distinguish which.
+export async function detectMemberGitRoots(root, members) {
+  const found = [];
+  for (const m of members) {
+    if (m.missing) continue;
+    const abs = path.resolve(root, m.path);
+    if (!existsSync(path.join(abs, '.git'))) continue;
+    const remote = runProbe('git remote get-url origin', abs, 5000);
+    found.push({ area: m.area, path: m.path, remote });
+  }
+  return found;
 }
 
 // Append a member to WORKSPACE.md (ws-010). No-op if the area already exists —

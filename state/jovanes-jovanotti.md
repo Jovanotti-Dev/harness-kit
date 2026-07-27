@@ -7,15 +7,14 @@
 
 ## Now
 
-- **Objective:** Implement `wsp-004` — workspace-level migrate, folding a foreign root harness in.
-- **Active feature:** `wsp-004` — ✅ **done**, closed and rotated.
-- **Status:** `wsp-004` implemented on `feature/wsp-004-workspace-migrate`. `--migrate` now
-  threads through to `generateWorkspace` and mirrors single-repo `--migrate` exactly — bypasses
-  the `wsp-003` refusal, writes the skeleton, leaves existing files (`CLAUDE.md`) untouched,
-  still surfaces the legacy report and the trailing `claudeConflict` warning. Deliberately does
-  NOT classify or move old content — "the script detects; you migrate". Added a **Root migrate**
-  section to `workspace-migrate.md`, distinct from hoist.
-- **Last verify:** `./verify.sh test` → 70/70 (was 68), `HARNESS_VERIFY: PASS` (2026-07-27).
+- **Objective:** Implement `wsp-005` — polyrepo detected → refuse + print conversion plan.
+- **Active feature:** `wsp-005` — ✅ **done**, closed and rotated.
+- **Status:** `wsp-005` implemented on `feature/wsp-005-polyrepo-refuse`. New
+  `detectMemberGitRoots` (detection only, never touches `.git`) wired into `generateWorkspace`
+  right before any writer runs. Found and fixed a real bug while building it: the `wsp-001`
+  hoist test's fixture accidentally created a polyrepo (`initGit(memberDir)`), which this row
+  now correctly refuses — fixed to match `ws-009`'s pattern (git at the root only).
+- **Last verify:** `./verify.sh test` → 72/72 (was 70), `HARNESS_VERIFY: PASS` (2026-07-27).
   Self-audit: **100/100**.
 
 ### Shakedown findings
@@ -43,16 +42,16 @@ member) broke nothing observed on these paths, despite being the deferred config
 
 ## Next step
 
-Epic **Workspace parity & repo shapes** (`wsp-001..009`) is `4/9` — `wsp-001` through `wsp-004`
-shipped and merged (#11, #12, #13, and this one).
+Epic **Workspace parity & repo shapes** (`wsp-001..009`) is `5/9` — `wsp-001` through `wsp-005`
+shipped and merged (#11, #12, #13, #14, and this one).
 
-`wsp-004` closed — the repair half of the `wsp-003` refuse/repair pair. 2 new tests, confirmed
-non-decorative (stashed both source files: without them `--migrate` was a no-op and the old
-code refused anyway; the no-`--migrate` regression guard still passed).
+`wsp-005` closed. No `--migrate`-style escape here, deliberately — converting polyrepo is git
+surgery (subtree, retiring remotes), not content classification, and stays the user's call.
+2 new tests, confirmed non-decorative (stashed both source files: the refusal test failed, the
+real-monorepo regression guard still passed).
 
-Next: `wsp-005` (polyrepo detected → refuse + print conversion plan) — no dependency, ready to
-start. The doc and the `.git` boundary are already written (`polyrepo-convert.md`,
-`CONSTITUTION.md`); this row is wiring the detection into `generateWorkspace` itself.
+Next: `wsp-006` (evidence-link check accepts URLs) — no dependency, ready to start. Unlike the
+last three rows this is a plain bug fix in `checks.mjs`, no workspace-mode interaction.
 
 Twyne remains converted and pushed (unrelated prior work): 4 repos → 1, 230 commits, CI green.
 
@@ -80,11 +79,10 @@ the user's choice).
 
 | File | Change | Why |
 |------|--------|-----|
-| `scripts/lib/workspace-generate.mjs` | Restructured the `wsp-003` refusal to accept `migrate`; hoisted `legacy` to function scope; trailing `claudeConflict` warning | wsp-004 |
-| `scripts/create.mjs` | Thread `--migrate` into `generateWorkspace`; help text note | wsp-004 |
-| `references/workspace-migrate.md` | New **Root migrate** section, distinguished from hoist, with its own mapping table | wsp-004 |
-| `tests/workspace.test.mjs` | +2 tests: `--migrate` bypasses + writes skeleton + leaves `CLAUDE.md` untouched; no-`--migrate` regression guard | wsp-004 |
-| `FEATURES.md` | `wsp-004` → ✅, progress 4/9, evidence link | Close the row |
-| `archive/features/wsp-004.md` | New — full detail, evidence table | Rotation on close |
+| `scripts/lib/workspace.mjs` | New `detectMemberGitRoots` — detection only, never touches `.git` | wsp-005 |
+| `scripts/lib/workspace-generate.mjs` | Wired the refusal in before any writer runs | wsp-005 |
+| `tests/workspace.test.mjs` | +2 tests: refuses + names member/remote/plan, real-monorepo regression guard; fixed `wsp-001`'s test fixture (accidental polyrepo) | wsp-005 |
+| `FEATURES.md` | `wsp-005` → ✅, progress 5/9, evidence link | Close the row |
+| `archive/features/wsp-005.md` | New — full detail, evidence table, the fixture bug found along the way | Rotation on close |
 
 _Ground truth: run `git diff --stat` to confirm this table matches reality._

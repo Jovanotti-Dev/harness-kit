@@ -815,15 +815,16 @@ test('wsp-001 DONE-WHEN: a generated workspace scores 100 on its own audit', asy
 test('wsp-001: hoist path still writes root state, and does not duplicate the archived member state', async () => {
   const dir = await tmp();
   try {
+    // git lives at the ROOT only (as in ws-009) — a member with its own .git
+    // is a polyrepo and wsp-005 now refuses to generate into one. `gitUser`
+    // resolves for the member by walking up to the root's config, same as a
+    // real monorepo subdirectory.
     const memberDir = path.join(dir, 'api');
     await pkgScripts(memberDir, { build: 'node -e "process.exit(0)"' }, {});
-    initGit(memberDir);
+    initGit(dir);
     runCreate(memberDir, ['--profile', 'standard']);
-    execFileSync('git', ['add', '-A'], { cwd: memberDir });
-    execFileSync('git', ['commit', '-q', '-m', 'seed member harness'], { cwd: memberDir });
 
     await writeMembers(dir, [{ area: 'api', path: './api', stack: 'tbd' }]);
-    initGit(dir);
     runCreate(dir);
 
     const state = await readdir(path.join(dir, 'state'));
@@ -1015,6 +1016,69 @@ test('wsp-004 REGRESSION GUARD: without --migrate the refusal still holds', asyn
     assert.equal(code, 2);
     assert.match(out, /refusing to write/i);
     assert.equal(existsSync(path.join(dir, 'AGENTS.md')), false);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+// ── wsp-005 ──────────────────────────────────────────────────────────────────
+// A member carrying its own .git means the root's history can never see that
+// member's commits — drift detection and `git log --grep` attribution then
+// silently pass instead of failing. Detect and refuse; never touch the .git.
+test('wsp-005: create refuses when a member carries its own .git (polyrepo)', async () => {
+  const dir = await tmp();
+  try {
+    const memberDir = path.join(dir, 'api');
+    await pkgScripts(memberDir, { build: 'node -e "process.exit(0)"' }, {});
+    initGit(memberDir);
+    execFileSync('git', ['remote', 'add', 'origin', 'https://example.com/api.git'], {
+      cwd: memberDir
+    });
+    await writeMembers(dir, [{ area: 'api', path: './api', stack: 'tbd' }]);
+    initGit(dir);
+
+    let code = 0;
+    let out = '';
+    try {
+      out = runCreate(dir);
+    } catch (e) {
+      code = e.status;
+      out = e.stdout ?? '';
+    }
+
+    assert.equal(code, 2, 'must exit 2 rather than writing');
+    assert.match(out, /refusing to write/i);
+    assert.match(out, /polyrepo/i);
+    assert.match(out, /api/, 'must name the member');
+    assert.match(out, /example\.com\/api\.git/, 'must name the remote');
+    assert.match(out, /polyrepo-convert\.md/i, 'must point at the conversion plan');
+    // Nothing written, and the member's .git is completely untouched.
+    assert.equal(existsSync(path.join(dir, 'AGENTS.md')), false);
+    assert.ok(existsSync(path.join(memberDir, '.git')));
+    const stillARepo = execFileSync(
+      'git',
+      ['rev-parse', '--is-inside-work-tree'],
+      { cwd: memberDir, encoding: 'utf8' }
+    ).trim();
+    assert.equal(stillARepo, 'true', 'member .git must remain a valid, untouched repo');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('wsp-005 REGRESSION GUARD: a real monorepo (no member .git) still generates normally', async () => {
+  const dir = await tmp();
+  try {
+    // Same shape as ws-009: git lives at the root only. A member subdirectory
+    // is not a polyrepo just because it sits under a git-tracked root.
+    await pkg(path.join(dir, 'api'), { express: '^4' });
+    initGit(dir);
+    await writeMembers(dir, [{ area: 'api', path: './api', stack: 'tbd' }]);
+
+    const out = runCreate(dir);
+
+    assert.doesNotMatch(out, /refusing to write/i);
+    assert.ok(existsSync(path.join(dir, 'AGENTS.md')));
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
