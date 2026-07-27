@@ -8,7 +8,54 @@
 
 | Epic | Progress | Active / open |
 |------|:--------:|---------------|
-| _No open epics — all shipped (see below)._ | | |
+| [Workspace parity & repo shapes](#epic--workspace-parity--repo-shapes) | 0/8 | `wsp-001` ready |
+
+---
+
+## Epic · Workspace parity & repo shapes
+
+**PRD:** [docs/workspace.md](docs/workspace.md) §10 · **Prefix:** `wsp-`
+**Started:** 2026-07-27 · **Started by:** Jovanes Jovanotti
+
+Closes the gap between what workspace mode promises and what it writes, and defines what
+harness-kit does when it meets a repo shape it cannot govern. Every row below came from the
+first real-world shakedown, run against a genuine three-project workspace — none was caught by
+the existing suite, because every workspace test builds its fixture from scratch and asserts on
+the file set rather than on the audit passing.
+
+| ID | Feature | Status | By | Depends on | Evidence |
+|----|---------|:------:|----|------------|----------|
+| `wsp-001` | Workspace generates `state/` + `archive/` at the root | 🟡 | — | — | — |
+| `wsp-002` | Workspace honours `--profile` tiers (`JOURNAL.md`, `evaluator-rubric.md` on `full`) | 🟡 | — | `wsp-001` | — |
+| `wsp-003` | `create` refuses at a workspace root carrying a foreign harness | 🟡 | — | — | — |
+| `wsp-004` | Workspace-level migrate: fold a foreign root harness in, nothing deleted | 🟡 | — | `wsp-003` | — |
+| `wsp-005` | Polyrepo detected → refuse + print conversion plan; `.git` never touched | 🟡 | — | — | — |
+| `wsp-006` | Evidence-link check accepts URLs instead of failing them as dead paths | 🟡 | — | — | — |
+| `wsp-007` | Root `verify.sh` stops clobbering user edits on re-run | 🟡 | — | — | — |
+| `wsp-008` | Workspace verify aggregate names the failing area(s) | 🟡 | — | — | — |
+
+`wsp-003` is the refusal (stop the damage); `wsp-004` is the repair (move the content). They
+ship in that order for the same reason `create`/`migrate` do in a single repo — refusing is
+safe on its own, migrating is not safe without it.
+
+**Done when** a generated workspace scores 100 on its own audit — the guard that would have
+caught `wsp-001`, and the reason the existing placeholder-free assertion did not — and the
+mode matrix below is complete for both single-repo and workspace shapes.
+
+**Mode matrix** (the target state; ✅ = shipped today)
+
+| Situation | Single repo | Workspace root |
+|---|---|---|
+| No harness | `create` ✅ | `create` ✅ |
+| Foreign harness present | `migrate` ✅ | `wsp-003` refuse → `wsp-004` migrate |
+| A member already has a harness | n/a | hoist ✅ |
+| Members each have their own `.git` | n/a | `wsp-005` refuse + plan |
+
+**Decisions** — recorded in `CONSTITUTION.md` (2026-07-27): workspace/single-repo parity;
+polyrepo refused with a plan and `.git` never touched; the foreign-harness guard binds at a
+workspace root.
+
+**Blockers** — none.
 
 ---
 
