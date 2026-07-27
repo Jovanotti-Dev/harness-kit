@@ -947,3 +947,75 @@ test('wsp-003 REGRESSION GUARD: a clean workspace root still generates normally'
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+// ── wsp-004 ──────────────────────────────────────────────────────────────────
+// wsp-003 refuses a workspace root carrying a foreign harness; --migrate is
+// the repair half — mirroring single-repo create --migrate exactly. It does
+// not classify or move old content itself ("the script detects; you
+// migrate"); it only unblocks generation so a skeleton exists to migrate
+// content into by hand.
+test('wsp-004: --migrate bypasses the refusal and writes the skeleton', async () => {
+  const dir = await tmp();
+  try {
+    const ok = 'node -e "process.exit(0)"';
+    await pkgScripts(path.join(dir, 'svc'), { build: ok }, {});
+    await writeMembers(dir, [{ area: 'svc', path: './svc', stack: 'tbd' }]);
+    initGit(dir);
+
+    await writeFile(
+      path.join(dir, 'CLAUDE.md'),
+      'Always read progress.md first. Never run tests.\n'
+    );
+    await writeFile(path.join(dir, 'progress.md'), '# history\n');
+
+    const out = runCreate(dir, ['--migrate']);
+
+    assert.doesNotMatch(out, /refusing to write/i);
+    // The legacy report is still surfaced so the human knows what to migrate.
+    assert.match(out, /progress\.md/);
+    assert.ok(existsSync(path.join(dir, 'AGENTS.md')), 'skeleton must be written');
+    assert.ok(existsSync(path.join(dir, 'CONSTITUTION.md')));
+    assert.ok(existsSync(path.join(dir, 'FEATURES.md')));
+
+    // --migrate does not force-overwrite; the old CLAUDE.md is left exactly
+    // as it was, not silently replaced.
+    assert.match(
+      await readFile(path.join(dir, 'CLAUDE.md'), 'utf8'),
+      /Never run tests/
+    );
+    // Old file untouched — nothing was deleted or moved automatically.
+    assert.ok(existsSync(path.join(dir, 'progress.md')));
+
+    // The trailing warning: harness is unreachable until CLAUDE.md is
+    // rewritten by hand.
+    assert.match(out, /does NOT point to AGENTS\.md/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('wsp-004 REGRESSION GUARD: without --migrate the refusal still holds', async () => {
+  const dir = await tmp();
+  try {
+    const ok = 'node -e "process.exit(0)"';
+    await pkgScripts(path.join(dir, 'svc'), { build: ok }, {});
+    await writeMembers(dir, [{ area: 'svc', path: './svc', stack: 'tbd' }]);
+    initGit(dir);
+    await writeFile(path.join(dir, 'CLAUDE.md'), 'Old harness, no pointer.\n');
+    await writeFile(path.join(dir, 'progress.md'), '# history\n');
+
+    let code = 0;
+    let out = '';
+    try {
+      out = runCreate(dir);
+    } catch (e) {
+      code = e.status;
+      out = e.stdout ?? '';
+    }
+    assert.equal(code, 2);
+    assert.match(out, /refusing to write/i);
+    assert.equal(existsSync(path.join(dir, 'AGENTS.md')), false);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
