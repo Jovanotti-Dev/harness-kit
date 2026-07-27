@@ -461,3 +461,41 @@ test('bug 10: a generated workspace root CONSTITUTION.md carries the same lane',
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+// ── Bug 11 ────────────────────────────────────────────────────────────────────
+// A merged-PR / CI-run URL is often the strongest evidence there is, but the
+// check did existsSync(path.join(target, url)) on it — always false, since a
+// URL is never a relative path — so the strongest evidence scored as a dead
+// link. Found on the real Twyne workspace during the shakedown.
+test('bug 11: a URL evidence link is accepted, not treated as a broken file path', () => {
+  const withUrl = runChecks(
+    baseCtx({
+      files: {
+        features: featuresFixture(
+          '| t-001 | A | ✅ | tester | — | [PR #1](https://github.com/example/repo/pull/1) |'
+        )
+      }
+    })
+  );
+  const check = withUrl
+    .find((c) => c.id === 'features')
+    .checks.find((c) => /evidence links resolve/i.test(c.label));
+  assert.equal(check.pass, true, 'a URL must not be checked against the filesystem');
+});
+
+test('bug 11 GUARD: a genuinely broken relative link still fails', () => {
+  const withBadPath = runChecks(
+    baseCtx({
+      files: {
+        features: featuresFixture(
+          '| t-001 | A | ✅ | tester | — | [proof](archive/features/t-001.md) |'
+        )
+      }
+    })
+  );
+  const check = withBadPath
+    .find((c) => c.id === 'features')
+    .checks.find((c) => /evidence links resolve/i.test(c.label));
+  assert.equal(check.pass, false, 'a relative path that does not exist must still be flagged');
+  assert.match(check.detail, /archive\/features\/t-001\.md/);
+});

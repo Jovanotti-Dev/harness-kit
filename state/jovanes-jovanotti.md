@@ -7,14 +7,13 @@
 
 ## Now
 
-- **Objective:** Implement `wsp-005` — polyrepo detected → refuse + print conversion plan.
-- **Active feature:** `wsp-005` — ✅ **done**, closed and rotated.
-- **Status:** `wsp-005` implemented on `feature/wsp-005-polyrepo-refuse`. New
-  `detectMemberGitRoots` (detection only, never touches `.git`) wired into `generateWorkspace`
-  right before any writer runs. Found and fixed a real bug while building it: the `wsp-001`
-  hoist test's fixture accidentally created a polyrepo (`initGit(memberDir)`), which this row
-  now correctly refuses — fixed to match `ws-009`'s pattern (git at the root only).
-- **Last verify:** `./verify.sh test` → 72/72 (was 70), `HARNESS_VERIFY: PASS` (2026-07-27).
+- **Objective:** Implement `wsp-006` — evidence-link check accepts URLs.
+- **Active feature:** `wsp-006` — ✅ **done**, closed and rotated.
+- **Status:** `wsp-006` implemented on `feature/wsp-006-evidence-link-urls`. One guard in
+  `checks.mjs`: a URL is accepted on sight before the `existsSync` filesystem check runs, since
+  `audit.mjs` is static-only (no network) and a URL was always failing as an impossible
+  relative path. Smallest of the epic's rows — no workspace-mode interaction, just `checks.mjs`.
+- **Last verify:** `./verify.sh test` → 74/74 (was 72), `HARNESS_VERIFY: PASS` (2026-07-27).
   Self-audit: **100/100**.
 
 ### Shakedown findings
@@ -42,16 +41,16 @@ member) broke nothing observed on these paths, despite being the deferred config
 
 ## Next step
 
-Epic **Workspace parity & repo shapes** (`wsp-001..009`) is `5/9` — `wsp-001` through `wsp-005`
-shipped and merged (#11, #12, #13, #14, and this one).
+Epic **Workspace parity & repo shapes** (`wsp-001..009`) is `6/9` — `wsp-001` through `wsp-006`
+shipped and merged (#11-#15, and this one).
 
-`wsp-005` closed. No `--migrate`-style escape here, deliberately — converting polyrepo is git
-surgery (subtree, retiring remotes), not content classification, and stays the user's call.
-2 new tests, confirmed non-decorative (stashed both source files: the refusal test failed, the
-real-monorepo regression guard still passed).
+`wsp-006` closed — the exact link from the real Twyne shakedown
+(`https://github.com/Jovanotti-Dev/twyne-ios/pull/1`) now passes. 2 new tests, confirmed
+non-decorative (stashed the source: the URL test failed, the broken-relative-link guard still
+passed).
 
-Next: `wsp-006` (evidence-link check accepts URLs) — no dependency, ready to start. Unlike the
-last three rows this is a plain bug fix in `checks.mjs`, no workspace-mode interaction.
+Next: `wsp-007` (root `verify.sh` stops clobbering user edits on re-run) — no dependency, ready
+to start.
 
 Twyne remains converted and pushed (unrelated prior work): 4 repos → 1, 230 commits, CI green.
 
@@ -79,10 +78,9 @@ the user's choice).
 
 | File | Change | Why |
 |------|--------|-----|
-| `scripts/lib/workspace.mjs` | New `detectMemberGitRoots` — detection only, never touches `.git` | wsp-005 |
-| `scripts/lib/workspace-generate.mjs` | Wired the refusal in before any writer runs | wsp-005 |
-| `tests/workspace.test.mjs` | +2 tests: refuses + names member/remote/plan, real-monorepo regression guard; fixed `wsp-001`'s test fixture (accidental polyrepo) | wsp-005 |
-| `FEATURES.md` | `wsp-005` → ✅, progress 5/9, evidence link | Close the row |
-| `archive/features/wsp-005.md` | New — full detail, evidence table, the fixture bug found along the way | Rotation on close |
+| `scripts/lib/checks.mjs` | Skip `existsSync` for a URL evidence link | wsp-006 |
+| `tests/regression.test.mjs` | Bug 11 + GUARD: URL passes, broken relative path still fails | wsp-006 |
+| `FEATURES.md` | `wsp-006` → ✅, progress 6/9, evidence link | Close the row |
+| `archive/features/wsp-006.md` | New — full detail, evidence table | Rotation on close |
 
 _Ground truth: run `git diff --stat` to confirm this table matches reality._

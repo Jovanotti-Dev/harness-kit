@@ -138,9 +138,17 @@ function featuresCategory({ files, target }) {
       r.dependsOn.some((d) => ids.has(d) && rows.find((x) => x.id === d)?.status !== '✅')
   );
 
+  // wsp-006: a merged-PR / CI-run URL is often the strongest evidence there
+  // is, but existsSync(path.join(target, url)) always fails for one — the
+  // check was treating "https://github.com/…" as a relative file path. The
+  // audit is static-only (no project commands, no network), so a URL is
+  // accepted on sight rather than fetched: verifying it resolves is a real
+  // check this tool deliberately doesn't perform, not a gap to paper over.
+  const isUrl = (s) => /^https?:\/\//i.test(s);
   const brokenLinks = rows
     .map((r) => /\]\(([^)]+)\)/.exec(r.evidence ?? '')?.[1])
     .filter(Boolean)
+    .filter((rel) => !isUrl(rel))
     .filter((rel) => !existsSync(path.join(target, rel)));
 
   const epicsMissingMeta = model.epics.filter((e) => !e.startedBy || !e.started);
