@@ -8,7 +8,7 @@
 
 | Epic | Progress | Active / open |
 |------|:--------:|---------------|
-| [Workspace parity & repo shapes](#epic--workspace-parity--repo-shapes) | 4/9 | `wsp-005` ready |
+| [Workspace parity & repo shapes](#epic--workspace-parity--repo-shapes) | 5/9 | `wsp-006` ready |
 
 ---
 
@@ -29,7 +29,7 @@ the file set rather than on the audit passing.
 | `wsp-002` | Workspace honours `--profile` tiers (`JOURNAL.md`, `evaluator-rubric.md` on `full`) | ✅ | Jovanes Jovanotti | `wsp-001` | [archive](archive/features/wsp-002.md) |
 | `wsp-003` | `create` refuses at a workspace root carrying a foreign harness | ✅ | Jovanes Jovanotti | — | [archive](archive/features/wsp-003.md) |
 | `wsp-004` | Workspace-level migrate: fold a foreign root harness in, nothing deleted | ✅ | Jovanes Jovanotti | `wsp-003` | [archive](archive/features/wsp-004.md) |
-| `wsp-005` | Polyrepo detected → refuse + print conversion plan; `.git` never touched | 🟡 | — | — | — |
+| `wsp-005` | Polyrepo detected → refuse + print conversion plan; `.git` never touched | ✅ | Jovanes Jovanotti | — | [archive](archive/features/wsp-005.md) |
 | `wsp-006` | Evidence-link check accepts URLs instead of failing them as dead paths | 🟡 | — | — | — |
 | `wsp-007` | Root `verify.sh` stops clobbering user edits on re-run | 🟡 | — | — | — |
 | `wsp-008` | Workspace verify aggregate names the failing area(s) | 🟡 | — | — | — |

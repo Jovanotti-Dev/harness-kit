@@ -5,6 +5,7 @@ import {
   refreshStacks,
   detectMembers,
   addMember,
+  detectMemberGitRoots,
   WORKSPACE_FILE
 } from './workspace.mjs';
 import { loadProfiles } from './detect.mjs';
@@ -355,6 +356,37 @@ export async function generateWorkspace(root, opts = {}) {
   for (const m of members) {
     const note = m.missing ? '  ! path not found' : '';
     console.log(`  ${m.area.padEnd(12)} ${m.path.padEnd(20)} ${m.stack}${note}`);
+  }
+
+  // wsp-005: a member carrying its own .git makes the root's history blind to
+  // that member's work — the git-backed checks (drift, `git log --grep`
+  // attribution, hook detection) then silently pass instead of failing, so
+  // the audit would report health for evidence that is inert. Detect and
+  // refuse rather than generate into it; never touch, delete, or rewrite any
+  // .git (CONSTITUTION.md, 2026-07-27). Gated on !dryRun for the same reason
+  // the foreign-harness check above is — dry-run previews the file plan
+  // regardless of a refusal state. No --migrate escape: converting polyrepo
+  // to a monorepo is git surgery, not content classification, and stays
+  // entirely the user's call (references/polyrepo-convert.md).
+  if (!dryRun) {
+    const polyrepoMembers = await detectMemberGitRoots(root, members);
+    if (polyrepoMembers.length) {
+      console.log(`harness-kit — refusing to write in ${root}\n`);
+      console.log('  These members carry their own .git — this workspace is a polyrepo, not a monorepo:\n');
+      for (const m of polyrepoMembers) {
+        console.log(`    ${m.area.padEnd(16)} ${m.path.padEnd(20)} ${m.remote ?? '(no remote configured)'}`);
+      }
+      console.log('\n  The root\'s git history cannot see member commits, so drift detection and');
+      console.log('  `git log --grep` attribution would silently pass instead of failing — the');
+      console.log('  audit would report a healthy score for evidence that is inert.\n');
+      console.log('  harness-kit never deletes or rewrites a .git. Converting to a monorepo is');
+      console.log('  irreversible for each member\'s independent remote, and is your call to make');
+      console.log('  and run — see references/polyrepo-convert.md for the decision test and the');
+      console.log('  exact commands.\n');
+      console.log('  To keep polyrepo as-is: nothing to do, but do not cite drift or attribution');
+      console.log('  checks as evidence — they cannot see member work.');
+      return { mode: 'workspace', ok: false, members, results: [] };
+    }
   }
 
   // Hoist any harness that lives inside a member dir up to the root first, so
