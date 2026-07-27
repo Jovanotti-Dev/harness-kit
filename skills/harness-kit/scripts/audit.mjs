@@ -41,7 +41,15 @@ const files = {
   stateFiles: await listStateFiles(target)
 };
 
-const commitIso = runProbe('git log -1 --format=%cI', target, 5000);
+// Paths whose changes are not "work that should have updated the state file":
+// prose, CI config, and session bookkeeping. Without this exclusion a README
+// typo fix or a version bump marked every state file stale — a warning nobody
+// can act on, which is how a real signal gets trained away.
+const BOOKKEEPING = ['state', 'docs', '.github', 'README.md', 'LICENSE', 'CHANGELOG.md', 'JOURNAL.md'];
+const excludes = BOOKKEEPING.map((p) => `':(exclude)${p}'`).join(' ');
+
+const isGitRepo = runProbe('git rev-parse --git-dir', target, 5000) !== null;
+const commitIso = runProbe(`git log -1 --format=%cI -- . ${excludes}`, target, 5000);
 const newestCommit = commitIso ? new Date(commitIso) : null;
 
 // Last commit date per state file. Filesystem mtime cannot be trusted for this:
@@ -52,7 +60,7 @@ for (const s of files.stateFiles) {
   if (iso) stateCommitDates[s.rel] = new Date(iso);
 }
 
-const categories = runChecks({ files, target, newestCommit, stateCommitDates });
+const categories = runChecks({ files, target, isGitRepo, newestCommit, stateCommitDates });
 
 // Warnings count for half. A missing "Started by" shouldn't weigh the same as a
 // dependency cycle.

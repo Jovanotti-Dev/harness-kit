@@ -7,6 +7,7 @@ import {
   splitSections,
   parseTables,
   parseFeatures,
+  shippedEntries,
   findCycles,
   lineCount,
   hasSection
@@ -119,4 +120,24 @@ test('findCycles detects a feature depending on itself', () => {
 test('findCycles ignores dependencies on features that do not exist', () => {
   assert.doesNotThrow(() => findCycles([{ id: 'a', dependsOn: ['ghost'] }]));
   assert.deepEqual(findCycles([{ id: 'a', dependsOn: ['ghost'] }]), []);
+});
+
+test('shippedEntries counts rotated epics and ignores the "none yet" placeholder', () => {
+  const withEntries = `# Features
+
+## Shipped
+
+Completed epics, rotated to \`archive/epics/\`. One line each.
+
+- **harness-kit v1** (\`hk-001..014\`) — the v1 generator. → [archive](archive/epics/a.md)
+- **Workspace mode** (\`ws-001..012\`) — monorepo roots. → [archive](archive/epics/b.md)
+`;
+  assert.equal(shippedEntries(withEntries).length, 2);
+  assert.match(shippedEntries(withEntries)[0], /harness-kit v1/);
+
+  // A freshly generated FEATURES.md carries prose, not bullets.
+  const fresh = '# Features\n\n## Shipped\n\nCompleted epics.\n\n_None yet._\n';
+  assert.deepEqual(shippedEntries(fresh), []);
+  assert.deepEqual(shippedEntries('# Features\n'), []);
+  assert.deepEqual(shippedEntries(null), []);
 });
