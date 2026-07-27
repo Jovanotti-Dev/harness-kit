@@ -10,6 +10,7 @@ import {
 import { loadProfiles } from './detect.mjs';
 import { buildProbeValues, gitUser, slugifyUser } from './probe.mjs';
 import { hoistMembers } from './hoist.mjs';
+import { detectLegacy, formatLegacyReport } from './legacy.mjs';
 import {
   render,
   readTemplate,
@@ -304,6 +305,29 @@ export async function generateWorkspace(root, opts = {}) {
     console.log('  then re-run. Membership is explicit — harness-kit never guesses which');
     console.log('  sub-directories are members.');
     return { mode: 'workspace', ok: false, members: [], results: [] };
+  }
+
+  // wsp-003: single-repo create refuses to write beside an existing foreign
+  // harness (legacy.mjs) — two competing instruction files means the agent
+  // follows the old one and never reaches the new harness. Workspace mode
+  // never bound the same guard at the root, so it would silently generate a
+  // full harness beside e.g. a hand-written CLAUDE.md, leaving that stale file
+  // in charge of every member. detectLegacy is target-agnostic (it only reads
+  // files under `target`), so the identical check applies here unchanged.
+  //
+  // No --migrate escape yet: workspace-level migrate (wsp-004) does not exist,
+  // so there is nowhere safe to send the user but to resolve it by hand first.
+  if (!dryRun) {
+    const legacy = await detectLegacy(root);
+    if (legacy.hasLegacy) {
+      console.log(`harness-kit — refusing to write in ${root}\n`);
+      console.log(formatLegacyReport(legacy));
+      console.log('  This workspace root already has a harness. Writing new files alongside it');
+      console.log('  would leave two competing sets of instructions governing every member.\n');
+      console.log('  Workspace-level migrate is not available yet (wsp-004). Resolve the');
+      console.log('  conflict by hand — or remove the old harness — then re-run.');
+      return { mode: 'workspace', ok: false, members: [], results: [] };
+    }
   }
 
   // In dry-run we detect but do not persist the stack column.
