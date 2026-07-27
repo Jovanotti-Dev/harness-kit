@@ -134,6 +134,31 @@ async function writeState(root, opts) {
   return [await writeOut(root, rel, stateOut, opts)];
 }
 
+// wsp-002: `create` computes `tier` from `--profile` and passed it into
+// generateWorkspace from the start (create.mjs), but nothing here ever read
+// it — every workspace wrote the standard set regardless of profile.
+// JOURNAL.md and evaluator-rubric.md are the only tier-gated files (single
+// repo's lite tier also drops CONSTITUTION.md/FEATURES.md, but a workspace
+// root's per-area constitutions and Area-tagged FEATURES.md route through
+// those files structurally, so they stay unconditional here).
+async function writeFullTierDocs(root, tier, opts) {
+  if (tier !== 'full') return [];
+  const results = [];
+
+  const journalRaw = await readTemplate('JOURNAL.md.template');
+  results.push(await writeOut(root, 'JOURNAL.md', journalRaw, opts));
+
+  const rubricRaw = await readTemplate('evaluator-rubric.md.template');
+  const rubricOut = render(rubricRaw, {
+    VERIFY_BUILD: './verify.sh build',
+    VERIFY_TEST: './verify.sh test'
+  });
+  assertNoPlaceholders(rubricOut, 'evaluator-rubric.md');
+  results.push(await writeOut(root, 'evaluator-rubric.md', rubricOut, opts));
+
+  return results;
+}
+
 // archive/ is exactly one directory at the workspace root (never per member —
 // rotation.md §"Workspace mode"), so rotation has somewhere to put closed
 // features and sessions. Without it the first rotation has no destination.
@@ -259,7 +284,7 @@ async function writeConstitutions(root, members, profiles, opts) {
 // FEATURES.md, member breadcrumbs and the orchestrating verify.sh are later
 // features (ws-005..ws-008).
 export async function generateWorkspace(root, opts = {}) {
-  const { dryRun = false, force = false, addMember: toAdd = null } = opts;
+  const { dryRun = false, force = false, addMember: toAdd = null, tier = 'standard' } = opts;
 
   // Add-a-member-later (ws-010): append the row before anything else, so the
   // rest of generation (detection, per-member files, the verify orchestrator)
@@ -305,6 +330,7 @@ export async function generateWorkspace(root, opts = {}) {
     ...(await writeConstitutions(root, members, profiles, { force, dryRun })),
     ...(await writeState(root, { force, dryRun })),
     ...(await writeArchive(root, { force, dryRun })),
+    ...(await writeFullTierDocs(root, tier, { force, dryRun })),
     ...(await writeBreadcrumbs(root, members, { force, dryRun })),
     ...(await writeVerify(root, members, profiles, { force, dryRun }))
   ];

@@ -7,13 +7,14 @@
 
 ## Now
 
-- **Objective:** Implement `wsp-001` — workspace generates `state/` + `archive/` at the root.
-- **Active feature:** `wsp-001` — ✅ **done**, closed and rotated.
-- **Status:** `wsp-001` implemented on `feature/wsp-001-workspace-state`. Two functions added to
-  `workspace-generate.mjs` (`writeState`, `writeArchive`), wired alongside the existing root-doc
-  writers. Hoist path checked separately — it already archives a member's old `state/`, so the
-  new writer runs after without duplicating it.
-- **Last verify:** `./verify.sh test` → 64/64 (was 61), `HARNESS_VERIFY: PASS` (2026-07-27).
+- **Objective:** Implement `wsp-002` — workspace honours `--profile` tiers.
+- **Active feature:** `wsp-002` — ✅ **done**, closed and rotated.
+- **Status:** `wsp-002` implemented on `feature/wsp-002-workspace-profile-tiers`. `tier` was
+  already threaded from `create.mjs` into `generateWorkspace` since `ws-003` but never read;
+  added `writeFullTierDocs` gated on `tier === 'full'`. `CONSTITUTION.md`/`FEATURES.md` stay
+  unconditional at a workspace root regardless of tier — per-area routing and Area-tagged
+  `FEATURES.md` depend on them structurally, unlike single-repo's `lite` tier.
+- **Last verify:** `./verify.sh test` → 66/66 (was 64), `HARNESS_VERIFY: PASS` (2026-07-27).
   Self-audit: **100/100**.
 
 ### Shakedown findings
@@ -45,12 +46,16 @@ Epic **Workspace parity & repo shapes** (`wsp-001..009`) is open in `FEATURES.md
 and the polyrepo policy are written up in `docs/workspace.md` §10 and bound in
 `CONSTITUTION.md`. Nothing is coded yet.
 
-`wsp-001` closed. Repro from the shakedown confirmed fixed: 97/100 → 100/100. 3 new tests, all
-verified failing before the fix (stashed the source: 3/3 new failed, 30/30 others still passed).
+`wsp-002` closed. 2 new tests: the positive case confirmed failing before the fix (stashed the
+source — full-tier test failed, standard-tier guard still passed, correctly, since that one is
+a regression guard rather than a fix-detector).
 
-Next: `wsp-002` (workspace honours `--profile` tiers) depends on `wsp-001`, now unblocked.
+Next: `wsp-003` (`create` refuses at a workspace root carrying a foreign harness) — no
+dependency, ready to start. This is the one reproduced live during the shakedown: generation
+wrote a full harness beside a `CLAUDE.md` reading "always read progress.md first, never run
+tests" and the old file was silently skipped rather than flagged.
 
-Twyne is converted and pushed (unrelated prior work): 4 repos → 1, 230 commits, CI green.
+Twyne remains converted and pushed (unrelated prior work): 4 repos → 1, 230 commits, CI green.
 
 Scratch copies and the Twyne backup are deleted; the history has three homes (monorepo local,
 `twyne-workspace` remote, and the three original repos, which are left live and unarchived at
@@ -76,9 +81,9 @@ the user's choice).
 
 | File | Change | Why |
 |------|--------|-----|
-| `scripts/lib/workspace-generate.mjs` | Added `writeState` + `writeArchive`, wired into `generateWorkspace` | wsp-001 |
-| `tests/workspace.test.mjs` | +3 tests: state written, Done-when audit 100, hoist path unaffected | wsp-001 |
-| `FEATURES.md` | `wsp-001` → ✅, progress 1/9, evidence link | Close the row |
-| `archive/features/wsp-001.md` | New — full detail, evidence table | Rotation on close |
+| `scripts/lib/workspace-generate.mjs` | Read `tier`, added `writeFullTierDocs` gated on `full` | wsp-002 |
+| `tests/workspace.test.mjs` | +2 tests: full-tier writes both files, standard-tier writes neither | wsp-002 |
+| `FEATURES.md` | `wsp-002` → ✅, progress 2/9, evidence link | Close the row |
+| `archive/features/wsp-002.md` | New — full detail, evidence table, scope decision on `lite` | Rotation on close |
 
 _Ground truth: run `git diff --stat` to confirm this table matches reality._
