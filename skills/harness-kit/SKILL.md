@@ -23,7 +23,7 @@ from `git config user.name`, never from the agent.
 | Mode | When | Reference |
 |---|---|---|
 | **create** | Repo has no harness, or is missing files | [references/create.md](references/create.md) |
-| **workspace** | A monorepo root governs several member repos (`WORKSPACE.md`) | [references/create.md](references/create.md) · [workspace-migrate.md](references/workspace-migrate.md) |
+| **workspace** | A monorepo root governs several member repos (`WORKSPACE.md`) | [references/create.md](references/create.md) · [workspace-migrate.md](references/workspace-migrate.md) · [polyrepo-convert.md](references/polyrepo-convert.md) |
 | **migrate** | Repo already has a harness (any flavour) | [references/migrate.md](references/migrate.md) |
 | **loop** | Any working session in a harnessed repo | [references/loop.md](references/loop.md) |
 | **audit** | Explicit request only — never run on your own initiative | [references/audit.md](references/audit.md) |
@@ -51,6 +51,11 @@ Default to `standard`. Offer `lite` when the repo is small and has no test tooli
   owns the harness; a member dir gets only its code, a `verify.sh`, and a `CLAUDE.md` breadcrumb
   pointing up. Running `create` inside a member is the multi-repo form of the rule above —
   add it with `--add-member`, or hoist an existing member harness up (workspace-migrate).
+- **Never generate into a polyrepo, and never touch a `.git`.** Members that each carry their
+  own `.git` are refused with a conversion plan ([polyrepo-convert.md](references/polyrepo-convert.md)),
+  because the root history cannot see member work — the git-backed checks then pass silently
+  rather than failing. Deleting or rewriting a `.git` is forbidden in every mode: it is the one
+  artefact that cannot be rebuilt from the working tree.
 - **Never auto-commit.** Update files, report, let the user decide.
 - **Never invent verification.** Only list checks the project actually has — detect them from
   manifests and probes. A check that can't run is worse than no check.
