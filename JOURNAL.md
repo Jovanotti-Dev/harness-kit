@@ -49,3 +49,15 @@ paths (`docs/`, `.github/`, `README.md`, `LICENSE`, `CHANGELOG.md`, `JOURNAL.md`
 from the "newest work commit" probe.
 Lesson: a warning nobody can act on is worse than no warning, because it teaches the
 reader to skip the whole category. Tune the comparison set, don't drop the check.
+
+### 2026-07-27 · Jovanes Jovanotti · A written procedure is untested until someone runs it
+`references/polyrepo-convert.md` was written from analysis and read as authoritative. Running
+it for real on a three-project workspace found its **verification gate was wrong**:
+`git log --oneline -- <area> | wc -l` returns 1, not the member's commit count, because imported
+commits record paths relative to the member's own root. Anyone following the doc would have
+concluded a successful conversion had failed — and possibly rolled it back. It also omitted that
+`subtree add` rebuilds the working tree from history, so uncommitted and ignored files (`.env`,
+signing config) silently do not return, and that a working-tree *deletion* which was never
+committed comes back alive.
+Lesson: a procedure doc is a hypothesis. Ship it, but treat its checks as unverified until the
+first real run — and fix the doc from that run, not from re-reading it.

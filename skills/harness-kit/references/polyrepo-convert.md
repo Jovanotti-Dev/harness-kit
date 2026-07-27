@@ -81,12 +81,49 @@ into the root repo under its own prefix.
 
 ### 4. Verify before deleting anything
 
+**Do not use `git log -- <area>` as the check.** It reports `1` — the merge commit — even on a
+perfectly good import, because the imported commits record paths relative to the member's own
+root (`Sources/App.swift`, not `<area>/Sources/App.swift`). `--full-history` does not help and
+`--follow` returns nothing. Trusting it would fail a conversion that actually worked.
+
+Check the three things that do hold:
+
 ```bash
-git log --oneline -- <area> | wc -l
+git rev-list --count HEAD                      # ≈ root + every member's commits + one merge each
+git log --oneline | grep "<a known old commit message>"
+git blame -L1,3 <area>/<some tracked file>     # original author, date and SHA must survive
 ```
 
-This must show roughly the member's original commit count. **Only once every member checks out**
-may the `/tmp/*.bak` copies and the old `.git` directories go.
+`git blame` is the real proof: it traverses the merge, so it still names who wrote each line and
+when. That is also the operation you rely on day to day.
+
+**Only once every member checks out** may the moved-aside copies and the old `.git` directories
+go.
+
+### 4b. Restore what git could not
+
+`subtree add` rebuilds the working tree **from history**, so anything that was never committed
+does not come back:
+
+- **ignored files that matter** — `.env`, `.env.local`, signing config, `.claude/settings.local.json`;
+- **uncommitted working-tree state** — including *deletions*. A file deleted in the working tree
+  but never committed comes back alive. If a member harness was hoisted away, its `AGENTS.md`
+  reappears and starts competing again.
+
+Inventory before, restore after:
+
+```bash
+git -C <area> status --porcelain --ignored | grep -E '^(\?\?|!!)'
+```
+
+Copy the survivors back from the backup, then confirm nothing secret is now tracked:
+
+```bash
+git check-ignore -q <area>/.env && echo ignored || echo "EXPOSED — fix .gitignore before committing"
+```
+
+Commit any harness files that were legitimately untracked (member `CLAUDE.md` breadcrumbs,
+`verify.sh`) and remove anything the import resurrected.
 
 ### 5. Decide what the old remotes become
 
@@ -108,8 +145,20 @@ the git-backed checks become real.
 ## Costs to state plainly before anyone starts
 
 - **One remote.** No pushing just the iOS app any more.
-- **CI needs path filters**, or a backend commit triggers every project's pipeline. Member
-  repos usually carry their own workflows; these move to the root and need `paths:` guards.
+- **CI stops running the moment you convert, silently.** GitHub Actions reads
+  `.github/workflows/` **only at the repository root**; a workflow left at
+  `<area>/.github/workflows/` is ignored with no error and no warning. Every member workflow
+  must be moved to the root, renamed (they are all called `ci.yml` and will collide), and given:
+  - `paths:` filters, or one project's commit runs every project's pipeline — include the
+    workflow's own file so edits to it are still exercised;
+  - `defaults.run.working-directory`, since checkout now lands at the workspace root;
+  - `cache-dependency-path` on Node/Go setup steps — caching keys off the lockfile, which is no
+    longer at the root, so without it the cache silently never hits;
+  - fully-qualified `upload-artifact` paths, which resolve from the workspace root rather than
+    from `working-directory`.
+
+  Branch triggers also need collapsing: members often used different branch names
+  (`dev`, `development`, `main`), and a monorepo has one branch structure.
 - **No per-repo access control.** Access to the monorepo is access to every project.
 - **Clone size** is the sum of all histories, for everyone, always.
 - **Conversion is irreversible for the member's independent remote.** After it, that repo is a

@@ -7,10 +7,10 @@
 
 ## Now
 
-- **Objective:** Real-world shakedown of workspace mode — **done, 4 defects found.**
+- **Objective:** Shakedown + first real polyrepo→monorepo conversion — **both done.**
 - **Active feature:** none yet — the findings need an epic (past one session by definition).
-- **Status:** Ran against a copy of the real Twyne workspace (ios + backoffice + backend, real
-  git history, member `.git` each) and a synthetic clean workspace. No real repo was modified.
+- **Status:** Shakedown ran against copies; the conversion then ran for real on Twyne, with a
+  full backup taken first and every irreversible step verified before the next.
 - **Last verify:** `./verify.sh test` → 61/61, `HARNESS_VERIFY: PASS` (2026-07-27).
   Self-audit: **100/100**. `main` clean at `1aa2988`.
 
@@ -52,10 +52,12 @@ to every workspace user, and its Done-when guard (a generated workspace must sco
 own audit) is what would have caught the whole class. `wsp-005` now has its procedure written;
 only the detect-and-print code is missing.
 
-Twyne itself is **not** converted — that is the user's call to make and run.
+Twyne **is** converted and pushed: 4 repos → 1, 230 commits, CI moved to the root with
+path filters, all three pipelines green. That run is what corrected the reference doc.
 
-Scratch reproductions are in this session's scratchpad (`shakedown/polyrepo`, `/clean`,
-`/hoist`); they are disposable, and every one is a copy — no real project was touched.
+Scratch copies and the Twyne backup are deleted; the history has three homes (monorepo local,
+`twyne-workspace` remote, and the three original repos, which are left live and unarchived at
+the user's choice).
 
 ## Parked
 
@@ -77,12 +79,7 @@ Scratch reproductions are in this session's scratchpad (`shakedown/polyrepo`, `/
 
 | File | Change | Why |
 |------|--------|-----|
-| `state/jovanes-jovanotti.md` | Recorded the shakedown result and its findings | Shakedown |
-| `docs/workspace.md` | §10 — four repo shapes, parity rule, polyrepo policy, migration matrix | Model was undefined |
-| `CONSTITUTION.md` | 3 dated decisions: parity, polyrepo refusal + never touch `.git`, foreign-harness guard | Make it binding |
-| `FEATURES.md` | New epic `wsp-001..008` + mode matrix | Findings need tracked rows |
-| `references/polyrepo-convert.md` | New — the conversion plan `wsp-004` prints | Policy needed a procedure |
-| `SKILL.md` | Workspace row links the new reference; polyrepo/`.git` invariant added | Make the rule reachable |
-| `docs/workspace.md` | §10.4 points at the reference; §10.5 adds workspace-level migrate | One home for the procedure |
+| `references/polyrepo-convert.md` | Fixed the wrong verification gate; added untracked/ignored recovery and the CI-location trap | Validated against a real conversion |
+| `JOURNAL.md` | Lesson: a procedure doc is a hypothesis until someone runs it | Generalises |
 
 _Ground truth: run `git diff --stat` to confirm this table matches reality._
