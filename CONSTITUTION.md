@@ -30,10 +30,17 @@
 
 ## Git
 
-- Base branch for PRs: `main`. Work happens on `phase-N/<topic>` branches, one phase per branch.
-- **Commit messages are prefixed with the feature ID:** `feat-042: <summary>`.
-  This lets `git log --grep="<id>"` corroborate the `By` column in `FEATURES.md` — markdown
-  gives attribution at a glance, git proves it.
+- Base branch for PRs: `main`. One unit of work per branch.
+  - Feature work: `phase-N/<topic>`, one phase per branch.
+  - Maintenance that belongs to no feature row: `<type>/<topic>` — `fix/`, `docs/`, `chore/`.
+- **Commit messages are prefixed with the feature ID** when the work belongs to a feature row:
+  `feat-042: <summary>`. This lets `git log --grep="<id>"` corroborate the `By` column in
+  `FEATURES.md` — markdown gives attribution at a glance, git proves it.
+- **Maintenance commits use a type prefix instead:** `fix:`, `docs:`, `chore:`. There is no
+  `By` column to corroborate, so traceability comes from the PR and — when the lesson
+  generalises — a `JOURNAL.md` entry. This is for work too small to track, not an escape from
+  tracking: if it grows past one session, or changes behaviour someone else depends on, stop
+  and give it a feature row.
 - **State is one file per person:** `state/<git config user.name>.md`. You write only your own
   file; nobody else ever touches it. Because git only conflicts when two branches change the
   *same lines of the same file*, this makes **merge, rebase and cherry-pick conflict-free by
@@ -78,6 +85,14 @@ than designed around. Chosen from the Workspace-mode epic (`archive/epics/worksp
 one epic with one row per area; it is worked one row at a time and done when all its rows are ✅.
 This is why each platform is its own row (own Area, `By`, evidence) rather than a checklist
 inside one mega-feature — it preserves per-platform status and reuses the epic→feature hierarchy.
+
+### 2026-07-27 · Maintenance work has a lane, and it is narrow
+The git rules covered only work with a feature ID, so corrective work outside an epic had no
+legal branch name or commit prefix — PR #6 fixed three audit defects and could not follow the
+rules it shipped under. Two options: force every fix through a feature row (accurate, but
+`FEATURES.md` fills with one-line chores and stops being a scope backbone), or give maintenance
+a `<type>/` lane. Chose the lane, bounded: past one session, or any change someone else depends
+on, it gets a row. The bound is what stops the lane becoming a way to do untracked feature work.
 
 ### 2026-07-27 · An audit check must distinguish done from never-started
 A check may not fail a project for having completed and rotated its work. Every check whose
