@@ -39,7 +39,7 @@ member) broke nothing observed on these paths, despite being the deferred config
 
 ## Next step
 
-Epic **Workspace parity & repo shapes** (`wsp-001..008`) is open in `FEATURES.md`; the model
+Epic **Workspace parity & repo shapes** (`wsp-001..009`) is open in `FEATURES.md`; the model
 and the polyrepo policy are written up in `docs/workspace.md` §10 and bound in
 `CONSTITUTION.md`. Nothing is coded yet.
 
@@ -81,5 +81,7 @@ the user's choice).
 |------|--------|-----|
 | `references/polyrepo-convert.md` | Fixed the wrong verification gate; added untracked/ignored recovery and the CI-location trap | Validated against a real conversion |
 | `JOURNAL.md` | Lesson: a procedure doc is a hypothesis until someone runs it | Generalises |
+| `FEATURES.md` | Added `wsp-009` (interactive adopt) + mode-matrix row | User-directed adopt had no path |
+| `CONSTITUTION.md` | Amended the `.git` rule: the line is destructive vs additive | `wsp-009` would otherwise be forbidden |
 
 _Ground truth: run `git diff --stat` to confirm this table matches reality._

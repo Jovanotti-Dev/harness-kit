@@ -104,9 +104,18 @@ invisible to the root, the git-backed checks (drift, `git log --grep` attributio
 detection) do not fail, they *silently pass*, so the audit reports health for a harness whose
 evidence checks are inert. A silent pass is worse than an error.
 **No mode, flag, or request may delete or rewrite a `.git` directory.** It is the only artefact
-that cannot be rebuilt from the working tree. harness-kit prints the commands; the user runs
-them, having been told that conversion is irreversible for the member's independent remote.
-See `docs/workspace.md` §10.3–10.4.
+that cannot be rebuilt from the working tree.
+
+The line is *destructive versus additive*, not *git versus not-git* (amended 2026-07-27 after
+the first real conversion). `git subtree add` **reads** a member's `.git` and writes only to the
+root; it destroys nothing and is reversible by resetting the root. A tool may run that. Deleting
+the member's `.git`, force-pushing, or rewriting history is irreversible, and a tool may not —
+whatever flag is passed.
+
+So: when harness-kit *discovers* a polyrepo it refuses and prints the plan (nothing was asked
+of it). When the user *asks* it to adopt named projects, it may import them with history, verify
+the import, then print what to delete and stop. Both paths end at the same boundary.
+See `docs/workspace.md` §10.3–10.4 and `references/polyrepo-convert.md`.
 
 ### 2026-07-27 · The refuse-alongside-a-foreign-harness guard applies at a workspace root
 `create` refuses to write beside an existing foreign harness in a single repo; the same guard

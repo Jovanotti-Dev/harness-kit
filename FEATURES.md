@@ -8,7 +8,7 @@
 
 | Epic | Progress | Active / open |
 |------|:--------:|---------------|
-| [Workspace parity & repo shapes](#epic--workspace-parity--repo-shapes) | 0/8 | `wsp-001` ready |
+| [Workspace parity & repo shapes](#epic--workspace-parity--repo-shapes) | 0/9 | `wsp-001` ready |
 
 ---
 
@@ -33,10 +33,25 @@ the file set rather than on the audit passing.
 | `wsp-006` | Evidence-link check accepts URLs instead of failing them as dead paths | 🟡 | — | — | — |
 | `wsp-007` | Root `verify.sh` stops clobbering user edits on re-run | 🟡 | — | — | — |
 | `wsp-008` | Workspace verify aggregate names the failing area(s) | 🟡 | — | — | — |
+| `wsp-009` | Interactive adopt: pick members, import each **with history**, stop before the destructive step | 🟡 | — | `wsp-005` | — |
 
 `wsp-003` is the refusal (stop the damage); `wsp-004` is the repair (move the content). They
 ship in that order for the same reason `create`/`migrate` do in a single repo — refusing is
 safe on its own, migrating is not safe without it.
+
+`wsp-005` and `wsp-009` are the same split one level up. `wsp-005` refuses a polyrepo found by
+surprise; `wsp-009` serves the user who *asked* to build a monorepo and named the projects.
+Different intent, so different answer — but the safety line is identical, and it falls in an
+unusual place worth stating precisely:
+
+> `git subtree add` **reads** the member's `.git` and writes only to the root. It is additive,
+> so a tool may run it. Deleting the member's `.git` afterwards is destructive and irreversible,
+> so a tool may not.
+
+`wsp-009` therefore does the import and the verification, prints what to delete, and stops.
+`--no-history` may exist as an opt-in for throwaway history, must name how many commits it is
+dropping, and is never the default: the first real conversion took roughly three commands per
+member, so skipping history saves minutes and costs everything.
 
 **Done when** a generated workspace scores 100 on its own audit — the guard that would have
 caught `wsp-001`, and the reason the existing placeholder-free assertion did not — and the
@@ -50,6 +65,7 @@ mode matrix below is complete for both single-repo and workspace shapes.
 | Foreign harness present | `migrate` ✅ | `wsp-003` refuse → `wsp-004` migrate |
 | A member already has a harness | n/a | hoist ✅ |
 | Members each have their own `.git` | n/a | `wsp-005` refuse + plan |
+| User *asks* to build one from several repos | n/a | `wsp-009` adopt, with history |
 
 **Decisions** — recorded in `CONSTITUTION.md` (2026-07-27): workspace/single-repo parity;
 polyrepo refused with a plan and `.git` never touched; the foreign-harness guard binds at a
