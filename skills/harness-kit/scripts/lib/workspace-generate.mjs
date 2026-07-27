@@ -8,7 +8,7 @@ import {
   WORKSPACE_FILE
 } from './workspace.mjs';
 import { loadProfiles } from './detect.mjs';
-import { buildProbeValues, gitUser } from './probe.mjs';
+import { buildProbeValues, gitUser, slugifyUser } from './probe.mjs';
 import { hoistMembers } from './hoist.mjs';
 import {
   render,
@@ -113,6 +113,35 @@ async function writeRootDocs(root, members, hoistedRows, opts) {
   assertNoPlaceholders(featuresOut, 'FEATURES.md');
   results.push(await writeOut(root, 'FEATURES.md', featuresOut, opts));
 
+  return results;
+}
+
+// wsp-001: a workspace root must generate what a single repo generates. The
+// root AGENTS.md startup step tells the agent to read state/<its name>.md and
+// CONSTITUTION.md points at the same path, but nothing wrote it — every
+// workspace shipped with a startup step pointing at a file that never existed.
+// One state file per person, at the root, never per member (workspace.mjs §4).
+async function writeState(root, opts) {
+  const user = gitUser(root) ?? 'unknown';
+  const stateRaw = await readTemplate('state.md.template');
+  const stateOut = render(stateRaw, {
+    GIT_USER: user,
+    OBJECTIVE: 'TODO: what are you trying to achieve across this workspace?',
+    NEXT_STEP: 'Pick the first feature from FEATURES.md and set it to in progress.'
+  });
+  assertNoPlaceholders(stateOut, 'state/<name>.md');
+  const rel = path.join('state', `${slugifyUser(user)}.md`);
+  return [await writeOut(root, rel, stateOut, opts)];
+}
+
+// archive/ is exactly one directory at the workspace root (never per member —
+// rotation.md §"Workspace mode"), so rotation has somewhere to put closed
+// features and sessions. Without it the first rotation has no destination.
+async function writeArchive(root, opts) {
+  const results = [];
+  for (const sub of ['features', 'sessions']) {
+    results.push(await writeOut(root, path.join('archive', sub, '.gitkeep'), '', opts));
+  }
   return results;
 }
 
@@ -274,6 +303,8 @@ export async function generateWorkspace(root, opts = {}) {
     ...hoist.results,
     ...(await writeRootDocs(root, members, hoist.rows, { force, dryRun })),
     ...(await writeConstitutions(root, members, profiles, { force, dryRun })),
+    ...(await writeState(root, { force, dryRun })),
+    ...(await writeArchive(root, { force, dryRun })),
     ...(await writeBreadcrumbs(root, members, { force, dryRun })),
     ...(await writeVerify(root, members, profiles, { force, dryRun }))
   ];
