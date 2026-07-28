@@ -12,6 +12,7 @@ import { loadProfiles } from './detect.mjs';
 import { buildProbeValues, gitUser, slugifyUser } from './probe.mjs';
 import { hoistMembers } from './hoist.mjs';
 import { detectLegacy, formatLegacyReport } from './legacy.mjs';
+import { adoptMembers, STAGING_DIR } from './adopt.mjs';
 import {
   render,
   readTemplate,
@@ -297,7 +298,9 @@ export async function generateWorkspace(root, opts = {}) {
     force = false,
     addMember: toAdd = null,
     tier = 'standard',
-    migrate = false
+    migrate = false,
+    adopt = false,
+    noHistory = false
   } = opts;
 
   // Add-a-member-later (ws-010): append the row before anything else, so the
@@ -358,8 +361,12 @@ export async function generateWorkspace(root, opts = {}) {
     }
   }
 
-  // In dry-run we detect but do not persist the stack column.
-  const members = dryRun ? await detectMembers(root) : await refreshStacks(root);
+  // Read-only detection first — persisting (refreshStacks, which rewrites
+  // WORKSPACE.md) happens after the adopt step below, not before. `git
+  // subtree add` requires a clean working tree; rewriting a tracked
+  // WORKSPACE.md moments before running it would dirty the tree and make
+  // every --adopt fail on a repo where WORKSPACE.md is already committed.
+  const members = await detectMembers(root);
   const profiles = await loadProfiles();
 
   console.log(`harness-kit — workspace ${dryRun ? 'dry run' : 'detected'} in ${root}`);
@@ -376,12 +383,47 @@ export async function generateWorkspace(root, opts = {}) {
   // refuse rather than generate into it; never touch, delete, or rewrite any
   // .git (CONSTITUTION.md, 2026-07-27). Gated on !dryRun for the same reason
   // the foreign-harness check above is — dry-run previews the file plan
-  // regardless of a refusal state. No --migrate escape: converting polyrepo
-  // to a monorepo is git surgery, not content classification, and stays
-  // entirely the user's call (references/polyrepo-convert.md).
+  // regardless of a refusal state.
+  //
+  // wsp-009: --adopt is the sanctioned way through, for a user who *asked*
+  // to build a monorepo rather than one who stumbled onto a polyrepo. Same
+  // candidates as the refusal below — `git subtree add` reads a member's
+  // .git and writes only to the root (additive, a tool may run it); nothing
+  // is ever deleted, only moved to .adopt-staging/ for the user to remove
+  // once they've reviewed it.
   if (!dryRun) {
     const polyrepoMembers = await detectMemberGitRoots(root, members);
-    if (polyrepoMembers.length) {
+    if (polyrepoMembers.length && adopt) {
+      console.log(`harness-kit — adopting ${polyrepoMembers.length} member(s) into the monorepo`);
+      // The one place this tool commits on the user's behalf, and only here
+      // (CONSTITUTION.md, 2026-07-27) — `git subtree add` cannot merge one
+      // repo's history into another without recording it. Announced before
+      // it runs, not discovered afterward in `git log`.
+      if (!noHistory) {
+        console.log('  each import below creates a merge commit in this repo — that is how');
+        console.log('  `git subtree add` works, and the only place harness-kit commits for you.\n');
+      } else {
+        console.log('');
+      }
+      const outcome = await adoptMembers(root, polyrepoMembers, { noHistory, dryRun });
+      for (const r of outcome.results) {
+        if (r.error) {
+          console.log(`  FAILED      ${r.area.padEnd(16)} ${r.error}`);
+          console.log(`\n  ${r.area}'s original is safe at ${r.staged} — nothing else was touched.`);
+          console.log(`  Move it back once you've resolved this: mv ${r.staged} ${r.path}`);
+          continue;
+        }
+        const kept = r.historyKept ? `${r.commitCount} commit(s) kept` : 'history dropped, --no-history';
+        console.log(`  ADOPTED     ${r.area.padEnd(16)} ${r.path.padEnd(20)} ${kept}`);
+      }
+      if (!outcome.ok) {
+        console.log(`\n  Stopped after the first failure — no further members were touched.`);
+        return { mode: 'workspace', ok: false, members, results: [] };
+      }
+      console.log(`\n  Original repo(s) preserved at ${STAGING_DIR}/ — review with git log / git blame,`);
+      console.log('  then remove them yourself once satisfied. Nothing was deleted automatically.');
+      console.log('');
+    } else if (polyrepoMembers.length) {
       console.log(`harness-kit — refusing to write in ${root}\n`);
       console.log('  These members carry their own .git — this workspace is a polyrepo, not a monorepo:\n');
       for (const m of polyrepoMembers) {
@@ -393,29 +435,36 @@ export async function generateWorkspace(root, opts = {}) {
       console.log('  harness-kit never deletes or rewrites a .git. Converting to a monorepo is');
       console.log('  irreversible for each member\'s independent remote, and is your call to make');
       console.log('  and run — see references/polyrepo-convert.md for the decision test and the');
-      console.log('  exact commands.\n');
+      console.log('  exact commands. Or add --adopt to have harness-kit run the import for you');
+      console.log('  (still irreversible for each member\'s remote; nothing is deleted — the');
+      console.log('  originals move to .adopt-staging/ for you to remove yourself).\n');
       console.log('  To keep polyrepo as-is: nothing to do, but do not cite drift or attribution');
       console.log('  checks as evidence — they cannot see member work.');
       return { mode: 'workspace', ok: false, members, results: [] };
     }
   }
 
+  // Persist detected stacks now — after adopt (if any) has already run
+  // against the pre-persist filesystem, before hoist/writeRootDocs need
+  // accurate stack values. In dry-run nothing is written.
+  const resolvedMembers = dryRun ? members : await refreshStacks(root);
+
   // Hoist any harness that lives inside a member dir up to the root first, so
   // its rules/features are preserved before the shared files are generated.
-  const hoist = await hoistMembers(root, members, { force, dryRun });
+  const hoist = await hoistMembers(root, resolvedMembers, { force, dryRun });
   if (hoist.results.length) {
     console.log(`\n  hoisted ${hoist.results.length} file(s) from in-member harness(es) → archive/legacy/ + root`);
   }
 
   const results = [
     ...hoist.results,
-    ...(await writeRootDocs(root, members, hoist.rows, { force, dryRun })),
-    ...(await writeConstitutions(root, members, profiles, { force, dryRun })),
+    ...(await writeRootDocs(root, resolvedMembers, hoist.rows, { force, dryRun })),
+    ...(await writeConstitutions(root, resolvedMembers, profiles, { force, dryRun })),
     ...(await writeState(root, { force, dryRun })),
     ...(await writeArchive(root, { force, dryRun })),
     ...(await writeFullTierDocs(root, tier, { force, dryRun })),
-    ...(await writeBreadcrumbs(root, members, { force, dryRun })),
-    ...(await writeVerify(root, members, profiles, { force, dryRun, memberAdded }))
+    ...(await writeBreadcrumbs(root, resolvedMembers, { force, dryRun })),
+    ...(await writeVerify(root, resolvedMembers, profiles, { force, dryRun, memberAdded }))
   ];
 
   console.log('');
@@ -423,7 +472,7 @@ export async function generateWorkspace(root, opts = {}) {
     console.log(`  ${r.status.toUpperCase().padEnd(11)} ${r.path}${r.reason ? ` (${r.reason})` : ''}`);
   }
 
-  const missing = members.filter((m) => m.missing);
+  const missing = resolvedMembers.filter((m) => m.missing);
   if (missing.length) {
     console.log(`\n  ! ${missing.length} member path(s) not found — fix ${WORKSPACE_FILE} or create the dir(s).`);
   }
@@ -441,5 +490,5 @@ export async function generateWorkspace(root, opts = {}) {
 
   console.log('\n  Run ./verify.sh (all members) or ./verify.sh <area> to verify one member.');
 
-  return { mode: 'workspace', ok: missing.length === 0, members, results };
+  return { mode: 'workspace', ok: missing.length === 0, members: resolvedMembers, results };
 }

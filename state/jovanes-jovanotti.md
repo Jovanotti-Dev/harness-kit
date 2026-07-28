@@ -7,64 +7,52 @@
 
 ## Now
 
-- **Objective:** Implement `wsp-008` — workspace verify aggregate names the failing area(s).
-- **Active feature:** `wsp-008` — ✅ **done**, closed and rotated.
-- **Status:** `wsp-008` implemented on `feature/wsp-008-verify-aggregate-names-failures`.
-  `verify-root.sh.template` gains a `failed=()` array, appended at both places `rc=1` is set
-  (single-area and run-all); the `FAIL` line lists them comma-joined. Guarded the one shell
-  gotcha explicitly: `${failed[*]}` only expands on the FAIL branch, since referencing an empty
-  array under `set -u` throws in bash 3.2 (macOS's default `/bin/bash`).
-- **Last verify:** `./verify.sh test` → 78/78 (was 76), `HARNESS_VERIFY: PASS` (2026-07-27).
+- **Objective:** Implement `wsp-009` — interactive adopt. **Epic complete: 9/9.**
+- **Active feature:** none — no open epic in `FEATURES.md`.
+- **Status:** `wsp-009` implemented on `feature/wsp-009-interactive-adopt`. New `--adopt` /
+  `--no-history` flags run `git subtree add` per polyrepo member (`wsp-005`'s exact
+  candidates), staging originals at `.adopt-staging/<area>/` — never deleted. Stops at the
+  first failure. New lib `scripts/lib/adopt.mjs`, new `runGit` (non-swallowing, unlike
+  `runProbe`) in `probe.mjs`.
+  Two real bugs found only by running the actual CLI end-to-end, neither caught by unit tests:
+  `.adopt-staging/` didn't exist on first use (`fs.rename` needs the parent dir made first),
+  and `git subtree add` needs a clean working tree — `refreshStacks` was dirtying a tracked
+  `WORKSPACE.md` moments before subtree ran. Fixed by reordering `generateWorkspace`: detect
+  members read-only, adopt, *then* persist stacks.
+  `git subtree add`'s merge commit is the one place this tool commits on the user's behalf —
+  scoped narrowly in a new `CONSTITUTION.md` decision (only that commit, only under `--adopt`,
+  announced before it runs — a test asserts the announcement is actually printed).
+  This was the epic's last row. Rotated per `references/rotation.md`: the epic section moved to
+  `archive/epics/workspace-parity-repo-shapes.md`, a Shipped line added, the roll-up row
+  removed. `docs/workspace.md` §10.4 and `polyrepo-convert.md` updated to describe `--adopt`
+  and the clean-tree precondition.
+- **Last verify:** `./verify.sh test` → 83/83 (was 78), `HARNESS_VERIFY: PASS` (2026-07-28).
   Self-audit: **100/100**.
-
-### Shakedown findings
-
-| # | Defect | Severity |
-|---|--------|:--------:|
-| 1 | Workspace generation never writes `state/` or `archive/`, though the root `AGENTS.md` startup step 2 and `CONSTITUTION.md` both mandate the state file. Every workspace harness ships at 97/100 with the agent's startup pointing at a file that does not exist. | **high** |
-| 2 | Evidence-link check treats a `https://` URL as a filesystem path, so a merged-PR link — the strongest evidence available — scores as a dead link. `checks.mjs:144` | med |
-| 3 | Root `verify.sh` is force-rewritten on every `create`, silently discarding user edits. Violates the "never overwrite blindly" invariant in `SKILL.md`. | med |
-| 4 | The aggregate `HARNESS_VERIFY: FAIL (workspace build)` line never names the failing area; you must scroll back through member output to find it. | low |
-| 5 | `create` at a workspace root writes a full harness **beside a foreign harness**, leaving `CLAUDE.md` pointing at the old one. Single-repo mode refuses here; workspace mode does not. | **high** |
-| 6 | Workspace mode ignores `--profile` entirely — `full` yields no `JOURNAL.md` or `evaluator-rubric.md`. | med |
-
-**Why no test caught #1:** the ws-012 guard asserts the generated file set is placeholder-free,
-not that the result passes its own audit. A workspace generation that scores 100 would have.
-
-### What worked
-
-Hoist is clean on a real repo with real history — 6 files archived to `archive/legacy/api/`,
-nothing deleted, member stopped competing, breadcrumb correct, git history untouched. Stack
-re-detection correct on all three real repos (go / web-react / ios-xcode). Regeneration is
-idempotent. The root orchestrator propagates a real member failure with a non-zero exit. Real
-Go and real Xcode builds both pass through the generated `verify.sh`. Polyrepo (a `.git` per
-member) broke nothing observed on these paths, despite being the deferred configuration.
 
 ## Next step
 
-Epic **Workspace parity & repo shapes** (`wsp-001..009`) is `8/9` — `wsp-001` through `wsp-008`
-shipped and merged (#11-#17, and this one). One row left.
+Nothing queued. The workspace epic (`wsp-001..009`) is closed; the shakedown that started it is
+fully resolved. Pick the next piece of work from a fresh look at the repo, or start a new epic
+if one comes up.
 
-`wsp-008` closed — the last of the original six shakedown findings. 2 new tests plus a
-strengthened existing `ws-008` assertion, confirmed non-decorative (stashed the template: all
-3 assertions failed, all pass restored).
-
-Next: `wsp-009` (interactive adopt — pick members, import each with history, stop before the
-destructive step) — depends on `wsp-005`, now unblocked. Last row in the epic; closes it at 9/9.
+Two loose threads, neither blocking, both already noted in `polyrepo-convert.md`:
+- `--adopt` automates Route B only. Routes A/C, `.gitignore` edits, and the CI migration
+  (moving member workflows to the root with `paths:` filters) stay manual regardless of route.
+- A root repo that already has a member staged as a gitlink (e.g. from an earlier `git add -A`)
+  will fail `--adopt` with git's own "working tree has modifications" error rather than a
+  harness-kit-authored explanation naming the cause. Safe and recoverable as-is (staging
+  preserves the original, the error is loud not silent) — just not maximally friendly. Worth a
+  sharper error message if it turns out to bite someone for real, per the project's own rule
+  about not fixing things that haven't actually broken yet.
 
 Twyne remains converted and pushed (unrelated prior work): 4 repos → 1, 230 commits, CI green.
-
-Scratch copies and the Twyne backup are deleted; the history has three homes (monorepo local,
-`twyne-workspace` remote, and the three original repos, which are left live and unarchived at
-the user's choice).
 
 ## Parked
 
 - **The audit cannot detect a state file that is fresh but untrue.** Recurred twice on
   2026-07-27, both times at 100/100 — the file claimed work was uncommitted after it had
-  merged. Freshness and size are checkable; content accuracy is not. The `JOURNAL.md` entry
-  the earlier note called for is now due if it happens a third time, but the honest fix is
-  rotation discipline at session end, not another check.
+  merged. Freshness and size are checkable; content accuracy is not. Rotation discipline at
+  session end is the honest fix, not another check.
 
 ## In flight elsewhere
 
@@ -78,9 +66,16 @@ the user's choice).
 
 | File | Change | Why |
 |------|--------|-----|
-| `templates/verify-root.sh.template` | `failed=()` array, named in the `FAIL` line, comma-joined; guarded the empty-array-under-`set -u` bash 3.2 gotcha | wsp-008 |
-| `tests/workspace.test.mjs` | Strengthened `ws-008`'s FAIL assertion; +2 new tests (multi-failure, single-area failure) | wsp-008 |
-| `FEATURES.md` | `wsp-008` → ✅, progress 8/9, evidence link | Close the row |
-| `archive/features/wsp-008.md` | New — full detail, evidence table | Rotation on close |
+| `scripts/lib/adopt.mjs` | New — `detectAdoptable`, `adoptMembers`; stages originals, runs subtree/copy, aborts on first failure | wsp-009 |
+| `scripts/lib/probe.mjs` | New `runGit` — non-swallowing git runner for mutating commands, unlike `runProbe` | wsp-009 |
+| `scripts/lib/workspace-generate.mjs` | Wired `--adopt`/`--no-history`; reordered detect→adopt→persist-stacks to keep the tree clean for subtree; refusal message now names `--adopt` | wsp-009 |
+| `scripts/create.mjs` | `--adopt`/`--no-history` flags; help text | wsp-009 |
+| `tests/workspace.test.mjs` | +5 tests: with-history import, `--no-history`, abort-on-failure, refusal mentions `--adopt`, no-op regression guard | wsp-009 |
+| `CONSTITUTION.md` | New decision — the subtree merge commit is a narrow, named exception to "never auto-commit" | wsp-009 |
+| `docs/workspace.md` | §10.4 rewritten: discovery refuses, request may adopt; clean-tree precondition documented | wsp-009 |
+| `references/polyrepo-convert.md` | New `--adopt` section; opening reframed (two paths, not one) | wsp-009 |
+| `FEATURES.md` | `wsp-009` → ✅; epic rotated out, Shipped line added | Close the row + epic |
+| `archive/features/wsp-009.md` | New — full detail, both real bugs, evidence table | Rotation on close |
+| `archive/epics/workspace-parity-repo-shapes.md` | New — full epic detail, final mode matrix, decisions, what-went-wrong | Epic rotation |
 
 _Ground truth: run `git diff --stat` to confirm this table matches reality._

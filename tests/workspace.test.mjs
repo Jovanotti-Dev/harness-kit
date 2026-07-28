@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, rm, writeFile, readFile, mkdir, readdir } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -33,7 +33,8 @@ import {
   resolveArea,
   renderMembers,
   detectMembers,
-  refreshStacks
+  refreshStacks,
+  detectMemberGitRoots
 } from '../skills/harness-kit/scripts/lib/workspace.mjs';
 import { parseFeatures } from '../skills/harness-kit/scripts/lib/parse.mjs';
 
@@ -1174,6 +1175,190 @@ test('wsp-008: a failing single-area run also names it in the aggregate line', a
     const res = runVerify(dir, ['api', 'build']);
     assert.notEqual(res.code, 0);
     assert.match(res.stdout, /HARNESS_VERIFY: FAIL \(workspace build :api — failed: api\)/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+// ── wsp-009 ──────────────────────────────────────────────────────────────────
+// The sanctioned way through wsp-005's refusal for a user who asked to build
+// a monorepo. `git subtree add` reads a member's .git and writes only to the
+// root (additive); nothing is ever deleted, only moved to .adopt-staging/.
+
+function initGitRepoWithCommits(dir, commits) {
+  execFileSync('git', ['init', '-q'], { cwd: dir });
+  execFileSync('git', ['config', 'user.name', 'Test User'], { cwd: dir });
+  execFileSync('git', ['config', 'user.email', 'test@example.com'], { cwd: dir });
+  for (const [file, content, message] of commits) {
+    writeFileSync(path.join(dir, file), content);
+    execFileSync('git', ['add', '-A'], { cwd: dir });
+    execFileSync('git', ['commit', '-q', '-m', message], { cwd: dir });
+  }
+}
+
+test('wsp-009: --adopt imports a member with history via git subtree', async () => {
+  const dir = await tmp();
+  try {
+    const memberDir = path.join(dir, 'api');
+    await mkdir(memberDir, { recursive: true });
+    initGitRepoWithCommits(memberDir, [
+      ['go.mod', 'module x\n', 'first commit'],
+      ['a.go', 'package x\n', 'second commit']
+    ]);
+
+    await writeMembers(dir, [{ area: 'api', path: './api', stack: 'go' }]);
+    initGit(dir);
+    // `git add -A` here would also pick up api/ as a gitlink (it has its own
+    // .git) — stage WORKSPACE.md alone, matching what a real polyrepo root
+    // looks like before adoption.
+    execFileSync('git', ['add', 'WORKSPACE.md'], { cwd: dir });
+    execFileSync('git', ['commit', '-q', '-m', 'root init'], { cwd: dir });
+
+    const out = runCreate(dir, ['--adopt']);
+    // CONSTITUTION.md (2026-07-27): the one commit this tool makes on the
+    // user's behalf must be announced before it runs, not discovered after.
+    assert.match(out, /creates a merge commit/);
+    assert.match(out, /ADOPTED\s+api/);
+    assert.match(out, /2 commit\(s\) kept/);
+
+    // No nested .git — the member is now tracked by the root like any file.
+    assert.equal(existsSync(path.join(memberDir, '.git')), false);
+    // Original preserved, not deleted.
+    assert.ok(existsSync(path.join(dir, '.adopt-staging', 'api', '.git')));
+
+    // The merge commit landed with the right message and two parents.
+    const headMsg = execFileSync('git', ['log', '-1', '--format=%s'], { cwd: dir, encoding: 'utf8' }).trim();
+    assert.match(headMsg, /Adopt api into the monorepo/);
+    const parents = execFileSync('git', ['log', '-1', '--format=%P'], { cwd: dir, encoding: 'utf8' }).trim();
+    assert.equal(parents.split(' ').length, 2, 'subtree add must produce a 2-parent merge commit');
+
+    // History actually came across — blame shows the original author/commit.
+    const blame = execFileSync('git', ['blame', '-L1,1', 'api/a.go'], { cwd: dir, encoding: 'utf8' });
+    assert.match(blame, /Test User/);
+
+    // No longer detected as a polyrepo member.
+    const roots = await detectMemberGitRoots(dir, await detectMembers(dir));
+    assert.deepEqual(roots, []);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('wsp-009: --no-history copies files, drops history, still preserves the original', async () => {
+  const dir = await tmp();
+  try {
+    const memberDir = path.join(dir, 'api');
+    await mkdir(memberDir, { recursive: true });
+    initGitRepoWithCommits(memberDir, [
+      ['go.mod', 'module x\n', 'first commit'],
+      ['a.go', 'package x\n', 'second commit']
+    ]);
+
+    await writeMembers(dir, [{ area: 'api', path: './api', stack: 'go' }]);
+    initGit(dir);
+    execFileSync('git', ['add', 'WORKSPACE.md'], { cwd: dir });
+    execFileSync('git', ['commit', '-q', '-m', 'root init'], { cwd: dir });
+
+    const before = execFileSync('git', ['rev-list', '--count', 'HEAD'], { cwd: dir, encoding: 'utf8' }).trim();
+    const out = runCreate(dir, ['--adopt', '--no-history']);
+    assert.match(out, /ADOPTED\s+api/);
+    assert.match(out, /history dropped/);
+
+    // No subtree merge commit — the root's own history is untouched.
+    const after = execFileSync('git', ['rev-list', '--count', 'HEAD'], { cwd: dir, encoding: 'utf8' }).trim();
+    assert.equal(after, before, '--no-history must not create a commit');
+
+    assert.equal(existsSync(path.join(memberDir, '.git')), false);
+    assert.ok(existsSync(path.join(memberDir, 'a.go')), 'files must still be copied across');
+    // Original, with its full history, is preserved for the user to discard.
+    const staged = path.join(dir, '.adopt-staging', 'api');
+    assert.ok(existsSync(path.join(staged, '.git')));
+    const stagedCount = execFileSync('git', ['rev-list', '--count', 'HEAD'], { cwd: staged, encoding: 'utf8' }).trim();
+    assert.equal(stagedCount, '2');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('wsp-009: aborts after the first failure without touching later candidates', async () => {
+  const dir = await tmp();
+  try {
+    const apiDir = path.join(dir, 'api');
+    await mkdir(apiDir, { recursive: true });
+    initGitRepoWithCommits(apiDir, [['go.mod', 'module x\n', 'c1']]);
+
+    // web has a .git but no commits — git subtree cannot merge onto nothing.
+    const webDir = path.join(dir, 'web');
+    await mkdir(webDir, { recursive: true });
+    execFileSync('git', ['init', '-q'], { cwd: webDir });
+    execFileSync('git', ['config', 'user.name', 'Test'], { cwd: webDir });
+    execFileSync('git', ['config', 'user.email', 't@example.com'], { cwd: webDir });
+
+    await writeMembers(dir, [
+      { area: 'api', path: './api', stack: 'go' },
+      { area: 'web', path: './web', stack: 'go' }
+    ]);
+    initGit(dir);
+    execFileSync('git', ['add', 'WORKSPACE.md'], { cwd: dir });
+    execFileSync('git', ['commit', '-q', '-m', 'root init'], { cwd: dir });
+
+    let code = 0;
+    let out = '';
+    try {
+      out = runCreate(dir, ['--adopt']);
+    } catch (e) {
+      code = e.status;
+      out = e.stdout ?? '';
+    }
+
+    assert.equal(code, 2, 'a failed adoption must exit non-zero');
+    assert.match(out, /ADOPTED\s+api/);
+    assert.match(out, /FAILED\s+web/);
+    assert.match(out, /original is safe at/);
+    assert.match(out, /Stopped after the first failure/);
+    // No harness files were written — the run stopped before generation.
+    assert.equal(existsSync(path.join(dir, 'AGENTS.md')), false);
+    // web's original (empty repo) is recoverable, not lost.
+    assert.ok(existsSync(path.join(dir, '.adopt-staging', 'web', '.git')));
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('wsp-009: the wsp-005 refusal now mentions --adopt as the sanctioned path', async () => {
+  const dir = await tmp();
+  try {
+    const memberDir = path.join(dir, 'api');
+    await mkdir(memberDir, { recursive: true });
+    initGitRepoWithCommits(memberDir, [['go.mod', 'module x\n', 'c1']]);
+
+    await writeMembers(dir, [{ area: 'api', path: './api', stack: 'go' }]);
+    initGit(dir);
+
+    let out = '';
+    try {
+      out = runCreate(dir);
+    } catch (e) {
+      out = e.stdout ?? '';
+    }
+    assert.match(out, /--adopt/, 'refusal must mention the sanctioned way through');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('wsp-009 REGRESSION GUARD: --adopt with no polyrepo members is a no-op', async () => {
+  const dir = await tmp();
+  try {
+    const ok = 'node -e "process.exit(0)"';
+    await pkgScripts(path.join(dir, 'api'), { build: ok }, {});
+    await writeMembers(dir, [{ area: 'api', path: './api', stack: 'tbd' }]);
+    initGit(dir);
+
+    const out = runCreate(dir, ['--adopt']);
+    assert.doesNotMatch(out, /refusing to write/i);
+    assert.doesNotMatch(out, /ADOPTED|FAILED/);
+    assert.ok(existsSync(path.join(dir, 'AGENTS.md')));
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

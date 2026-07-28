@@ -255,30 +255,59 @@ work — so the git-backed checks do not fail, they **silently pass**:
 Silent passes are worse than errors: the audit reports a healthy score for a harness whose
 evidence checks are inert. Hence detect-and-refuse rather than best-effort.
 
-### 10.4 Policy: convert to a monorepo, and never do it automatically
+### 10.4 Policy: convert to a monorepo — discovery refuses, a request may adopt
 
-The intended end state is a monorepo. `create` MUST NOT perform the conversion itself.
+The intended end state is a monorepo. `create` never converts on its own initiative — but a
+user who explicitly *asks* it to is a different case from one who stumbled onto a polyrepo,
+and `wsp-009` gives that request a sanctioned tool (`--adopt`), not just a printed plan.
 
-When it finds member `.git` directories at a workspace root it prints a plan and stops,
-following the same shape as the existing refuse-alongside-a-legacy-harness path:
+**Discovery (no flag): refuse and print a plan.** When `create` finds member `.git`
+directories it did not expect, it stops, following the same shape as the
+refuse-alongside-a-legacy-harness path:
 
 1. name every member that carries its own `.git`, and its remote;
 2. state plainly that converting is **irreversible for the member's independent remote** —
    after conversion the member no longer pushes anywhere on its own;
 3. give the exact commands, for the user to run and review;
 4. offer the alternative: keep polyrepo, and understand that drift and attribution checks are
-   inert — they must not be cited as evidence.
+   inert — they must not be cited as evidence;
+5. mention `--adopt` as the sanctioned way through, if the user wants the import run for them.
+
+**Request (`--adopt`): run the additive half, stop before the destructive half.** For each
+member carrying its own `.git`, `create --adopt`:
+
+- moves the member's original directory (with its `.git` intact) to `.adopt-staging/<area>/` —
+  never deleted, always recoverable with one `mv`;
+- runs `git subtree add` to bring it back at the same path, with full history — the one
+  operation this tool performs on the user's behalf, because it only *reads* the member's
+  `.git` and writes to the root (additive, per the destructive-vs-additive line below);
+- on the first failure, stops immediately and reports it — no further members are touched, and
+  the failed one's original is exactly where the message says it is;
+- prints, once every member is adopted, that the originals are in `.adopt-staging/` for review
+  (`git log`, `git blame`) and that removing them is the user's step, not the tool's.
+
+`--no-history` is the opt-in for throwaway history: a plain file copy instead of `git subtree
+add`, still staging the original rather than deleting it, and it names how many commits it is
+choosing not to keep.
 
 **Never delete or rewrite a `.git` directory.** Not with `--force`, not on request. It is the
 only artefact in a repo that cannot be reconstructed from the working tree, and a wrong guess
-destroys history that may exist nowhere else. harness-kit guides the conversion; the user
-performs it.
+destroys history that may exist nowhere else. `--adopt` moves originals aside; it never removes
+them — that step stays the user's, deliberately, forever.
 
-The plan itself lives in
+One precondition worth stating because it surprised the first real run: **`git subtree add`
+requires the root's working tree to be clean.** `create` detects members before persisting any
+stack-detection changes to `WORKSPACE.md`, specifically so its own bookkeeping never dirties
+the tree moments before `--adopt` needs it clean — but the user's own uncommitted changes at
+the root will still block it, exactly as git intends.
+
+The fully-manual plan lives in
 [`references/polyrepo-convert.md`](../skills/harness-kit/references/polyrepo-convert.md) —
 the decision test (do the members release independently?), why submodules are not a third
 answer, three conversion routes with `git subtree` as the default because it preserves commit
 SHAs and so keeps `git subtree push` a fast-forward, and the costs to state before starting.
+`--adopt` automates that document's Route B; Routes A and C, and any case `--adopt` can't
+handle, stay manual.
 
 ### 10.5 A workspace root with a foreign harness must refuse
 

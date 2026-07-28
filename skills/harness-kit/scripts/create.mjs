@@ -48,7 +48,14 @@ migration plan instead. Use --migrate to acknowledge and generate anyway.
 Workspace mode: if the target has a WORKSPACE.md (or --workspace is given),
 create treats it as a monorepo root and detects each member's stack.
 --migrate applies there too, if the root itself already carries a harness
-(see references/workspace-migrate.md).`);
+(see references/workspace-migrate.md).
+
+If a member listed in WORKSPACE.md carries its own .git, create refuses
+(the workspace's history cannot see that member's commits). --adopt runs
+the import for you with git subtree add, preserving history; --no-history
+copies the files instead and drops it. Neither ever deletes the member's
+original — it moves to .adopt-staging/ for you to remove yourself once
+you've reviewed it (see references/polyrepo-convert.md).`);
   process.exit(0);
 }
 
@@ -68,7 +75,17 @@ if (isWorkspace(target) || args.workspace || args['add-member']) {
       ? { area: args['add-member'], path: args.at || `./${args['add-member']}` }
       : null;
   const migrate = Boolean(args.migrate);
-  const res = await generateWorkspace(target, { tier, dryRun, force, addMember, migrate });
+  const adopt = Boolean(args.adopt);
+  const noHistory = Boolean(args['no-history']);
+  const res = await generateWorkspace(target, {
+    tier,
+    dryRun,
+    force,
+    addMember,
+    migrate,
+    adopt,
+    noHistory
+  });
   process.exit(res.ok ? 0 : 2);
 }
 
