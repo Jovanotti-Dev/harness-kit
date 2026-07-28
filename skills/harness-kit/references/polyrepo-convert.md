@@ -1,11 +1,21 @@
 # Polyrepo → monorepo — converting a folder of independent repos
 
 When a folder holds several projects and **each one has its own `.git`**, harness-kit cannot
-govern it. This is the written procedure it prints instead of generating.
+govern it. This is the plan `create` prints when it discovers that on its own.
 
-**This is a plan, not a script.** harness-kit never runs it. Converting rewrites where a
-project's history lives and retires a remote other people may be pushing to — the user must
-read it, decide, and run the commands themselves.
+**Two ways through, matched to how you got here:**
+
+- **You didn't ask for this — `create` just found it.** Read the plan below, decide, and run
+  the commands yourself. harness-kit never converts on its own initiative.
+- **You're asking for it — `create --adopt`** runs the additive half of Route B for you (`git
+  subtree add`, preserving history) and stops before the destructive half (removing the
+  originals). See [§ `--adopt`](#--adopt-the-tool-runs-route-b-for-you) below. Everything else
+  on this page — the decision test, Routes A/C, and any case `--adopt` can't handle — stays
+  manual either way.
+
+Converting rewrites where a project's history lives and retires a remote other people may be
+pushing to. Even under `--adopt`, nothing irreversible happens without you asking for it by
+name.
 
 ## Why refuse rather than continue
 
@@ -141,6 +151,39 @@ lost.
 
 With one `.git` at the root, workspace mode now applies. `create` generates the root harness and
 the git-backed checks become real.
+
+## `--adopt`: the tool runs Route B for you
+
+`create --target . --adopt` does steps 3–4 above per member automatically, then continues into
+normal generation. What it does and does not do, precisely:
+
+- **Does:** for each member with its own `.git`, moves the original to `.adopt-staging/<area>/`
+  (never deleted — one `mv` restores it), then runs `git subtree add --prefix <area>
+  .adopt-staging/<area> <branch>`, auto-detecting the member's current branch. Announces before
+  running that this creates a merge commit — the one place harness-kit commits on your behalf,
+  and only this, never the harness files it also writes (`AGENTS.md`, `CONSTITUTION.md`, …
+  those stay uncommitted exactly as after any other `create` run).
+- **Verifies:** the commit landed with the right message and two parents, and reports it —
+  though the strongest proof is the same `git blame` check in step 4 above; run it yourself too.
+- **Stops at the first failure.** No further members are touched; the failed one's original is
+  exactly where the error says (`.adopt-staging/<area>/`), and the message tells you the `mv`
+  to recover it.
+- **Does not** delete anything, ever — that is step 5 above, unchanged, still yours.
+- **Does not** touch step 2 (`.gitignore`) or the CI migration in "Costs" below — do those by
+  hand regardless of which route brought the member in.
+
+`--no-history` skips the subtree merge and copies the working tree instead (still staging the
+original, never deleting it), and states how many commits it is choosing to drop.
+
+**One precondition that bit the first real run:** `git subtree add` requires the root's working
+tree to be clean. `create` never lets its own bookkeeping (stack re-detection persisted to
+`WORKSPACE.md`) dirty the tree right before `--adopt` needs it — but *your* uncommitted changes
+at the root still will, exactly as git intends. Commit or stash them first.
+
+```bash
+node skills/harness-kit/scripts/create.mjs --target . --adopt
+node skills/harness-kit/scripts/create.mjs --target . --adopt --no-history
+```
 
 ## Costs to state plainly before anyone starts
 

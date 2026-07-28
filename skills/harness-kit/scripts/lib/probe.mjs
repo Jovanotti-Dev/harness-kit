@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { execSync } from 'node:child_process';
 
 // Probes are read-only, best-effort discovery. A probe that fails returns null
@@ -17,6 +18,15 @@ export function runProbe(command, cwd, timeout = 20_000) {
   } catch {
     return null;
   }
+}
+
+// wsp-009: unlike runProbe, this is for git commands that MUTATE state
+// (subtree add, mv) — a failure must never be swallowed into a silent null,
+// because the caller has to stop and report rather than proceed as if
+// nothing happened. Uses execFileSync (argv array, no shell) since arguments
+// here include user-controlled paths and branch names, not fixed strings.
+export function runGit(args, cwd, timeout = 60_000) {
+  return execFileSync('git', args, { cwd, timeout, encoding: 'utf8' }).trim();
 }
 
 // A probe may be a plain command string, or { cmd, timeout } when it is known

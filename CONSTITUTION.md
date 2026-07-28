@@ -117,6 +117,19 @@ of it). When the user *asks* it to adopt named projects, it may import them with
 the import, then print what to delete and stop. Both paths end at the same boundary.
 See `docs/workspace.md` §10.3–10.4 and `references/polyrepo-convert.md`.
 
+### 2026-07-27 · `git subtree add`'s merge commit is a narrow, named exception to "never auto-commit"
+`--adopt` (`wsp-009`) runs `git subtree add` to bring a member in with history — and that command
+cannot run without producing a commit; there is no way to merge one repo's history into another
+without recording it. This is the one place harness-kit commits on the user's behalf.
+The exception is scoped exactly this narrowly, not read as a crack in the rule generally:
+- it applies only to the commit `git subtree add` itself creates, never to the harness files
+  (`AGENTS.md`, `CONSTITUTION.md`, `FEATURES.md`, …) — those stay uncommitted after `--adopt`
+  exactly as after any other `create` run;
+- it fires only under `--adopt`, an operation the user explicitly asked for by name;
+- it is announced before it runs (`--adopt`'s output states plainly that this creates a commit),
+  never silent.
+"Never auto-commit" still means what it always meant for everything else the tool writes.
+
 ### 2026-07-27 · The refuse-alongside-a-foreign-harness guard applies at a workspace root
 `create` refuses to write beside an existing foreign harness in a single repo; the same guard
 binds at a workspace root, with the same force. Reaching a workspace through `WORKSPACE.md`
